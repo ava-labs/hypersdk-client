@@ -7,11 +7,11 @@
     "url": "https://github.com/MetaMask/template-snap-monorepo.git"
   },
   "source": {
-    "shasum": "ss5nb+DHNpba5zCPIogYrA+KEan4zd+ggsSpnOFut1U=",
+    "shasum": "Px04+I+V8a50sZ0u/jXVHOHSfGmE7zTWoHii3+0q0AU=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
-        "packageName": "sample-metamask-snap-for-hypersdk-v2",
+        "packageName": "sample-metamask-snap-for-hypersdk",
         "registry": "https://registry.npmjs.org/"
       }
     }
