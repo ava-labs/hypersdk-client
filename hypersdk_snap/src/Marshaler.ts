@@ -126,7 +126,7 @@ export class Marshaler {
             throw new Error(`Error in encodeArray: Expected an array for type ${type}, but received ${typeof value} of declared type ${type}`)
         }
 
-        const lengthBytes = encodeNumber("uint16", value.length);
+        const lengthBytes = encodeNumber("uint32", value.length);
         const encodedItems = value.map(item => this.encodeField(type, item));
         const flattenedItems = encodedItems.reduce((acc, item) => {
             if (item instanceof Uint8Array) {

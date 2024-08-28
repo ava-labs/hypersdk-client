@@ -190,25 +190,13 @@ export const abiString = `[
         }
       ]
     }
-  },
-  {
-    "id": 8,
-    "name": "MockActionWithTransferMap",
-    "types": {
-      "MockActionWithTransferMap": [
-        {
-          "name": "transfersMap",
-          "type": ""
-        }
-      ]
-    }
   }
 ]`
 
 test('TestABISpec', () => {
   const abi = new Marshaler(abiString)
   expect(bytesToHex(abi.getHash()))
-    .toBe("1b11cc4be907c26b3aa8346c07866a86ec685f63198ccbe27937a4372c49a4bd")
+    .toBe("0ac2ecd059822e91ff3a400d8e8cdd4adc028bc1409b605dea38d09cf7bc7611")
 })
 
 test('TestMarshalEmptySpec', () => {
@@ -301,10 +289,8 @@ test('TestMarshalArraysSpec', () => {
   }`
   const binary = abi.getActionBinary("MockActionArrays", jsonString)
   expect(bytesToHex(binary))
-    .toBe("0002000548656c6c6f0005576f726c6400020000000201020000000203040000000201020002012c0190000200011170000138800002000000012a05f2000000000165a0bc000002fffe0002fed4fe700002fffeee90fffec7800002fffffffed5fa0e00fffffffe9a5f4400")
+    .toBe("00000002000548656c6c6f0005576f726c640000000200000002010200000002030400000002010200000002012c019000000002000111700001388000000002000000012a05f2000000000165a0bc0000000002fffe00000002fed4fe7000000002fffeee90fffec78000000002fffffffed5fa0e00fffffffe9a5f4400")
 })
-
-
 
 test('TestMarshalTransferSpec - bech32', () => {
   const abi = new Marshaler(abiString)
@@ -318,7 +304,6 @@ test('TestMarshalTransferSpec - bech32', () => {
   expect(bytesToHex(binary))
     .toBe("0102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e800000003010203")
 })
-
 
 test('TestMarshalComplexStructs', () => {
   const abi = new Marshaler(abiString)
@@ -354,28 +339,5 @@ test('TestMarshalComplexStructs', () => {
   }`
   const binaryTransferArray = abi.getActionBinary("MockActionWithTransferArray", jsonStringTransferArray)
   expect(bytesToHex(binaryTransferArray))
-    .toBe("00020102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e8000000030102030102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e800000003010203")
-
-  //TODO: add support for maps
-  // // Struct with a map of transfers
-  // const jsonStringTransferMap = `
-  // {
-  //   "transfersMap": {
-  //     "first": {
-  //       "to": "AQIDBAUGBwgJCgsMDQ4PEBESExQAAAAAAAAAAAAAAAAA",
-  //       "value": 1000,
-  //       "memo": "AQID"
-  //     },
-  //     "second": {
-  //       "to": "AQIDBAUGBwgJCgsMDQ4PEBESExQAAAAAAAAAAAAAAAAA",
-  //       "value": 1000,
-  //       "memo": "AQID"
-  //     }
-  //   }
-  // }`
-  // const binaryTransferMap = abi.getActionBinary("MockActionWithTransferMap", jsonStringTransferMap)
-  // expect(bytesToHex(binaryTransferMap))
-  //   .toBe("0002000566697273740102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e80000000301020300067365636f6e640102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e800000003010203")
+    .toBe("000000020102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e8000000030102030102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e800000003010203")
 })
-
-//TODO: test uint256 packing
