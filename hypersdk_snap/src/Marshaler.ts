@@ -6,23 +6,32 @@ import { parseBech32 } from './bech32';
 import { base64 } from '@scure/base';
 
 
-export type SingleActionABI = {
-    id: number
-    name: string
-    types: Record<string, {
-        name: string
-        type: string
-    }[]>
+export type VMABI = {
+    actions: SingleActionABI[]
 }
 
+type SingleActionABI = {
+    id: number
+    name: string
+    types: SingleTypeABI[]
+}
 
+type SingleTypeABI = {
+    name: string,
+    fields: ABIField[]
+}
+
+type ABIField = {
+    name: string,
+    type: string
+}
 
 export class Marshaler {
-    private abi: SingleActionABI[]
+    private abi: VMABI
 
     constructor(private abiString: string) {
-        this.abi = JSON.parse(abiString)
-        if (!Array.isArray(this.abi)) {
+        this.abi = JSON.parse(abiString) as VMABI
+        if (!Array.isArray(this.abi?.actions)) {
             throw new Error('Invalid ABI: ABI must be an array of single action ABIs')
         }
     }
@@ -68,7 +77,7 @@ export class Marshaler {
     }
 
     private getActionTypeId(actionName: string): number {
-        const actionABI = this.abi.find(abi => abi.name === actionName)
+        const actionABI = this.abi.actions.find(abi => abi.name === actionName)
         if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
         return actionABI.id
     }
@@ -78,7 +87,14 @@ export class Marshaler {
             return encodeAddress(value)
         }
 
-        if (type === '[]uint8' && typeof value === 'string') {
+        if (type === 'StringAsBytes' && typeof value === 'string') {
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(value);
+            const base64 = btoa(String.fromCharCode(...bytes));
+            return this.encodeField('[]uint8', base64);
+        }
+
+        if ((type === '[]uint8') && typeof value === 'string') {
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }
@@ -103,15 +119,15 @@ export class Marshaler {
                 return encodeString(value as string)
             default:
                 {
-                    const actionABI = this.abi.find(abi => abi.name === type)
+                    const actionABI = this.abi.actions.find(abi => abi.name === type)
                     if (!actionABI) throw new Error(`No action ABI found: ${type}`)
 
-                    const structABI = actionABI.types[type]
+                    const structABI = actionABI.types.find(struct => struct.name === type)
                     if (!structABI) throw new Error(`No struct ${type} found in action ${type} ABI`)
 
                     const dataRecord = value as Record<string, unknown>;
                     let resultingBinary = new Uint8Array()
-                    for (const field of structABI) {
+                    for (const field of structABI.fields) {
                         const fieldBinary = this.encodeField(field.type, dataRecord[field.name]);
                         resultingBinary = new Uint8Array([...resultingBinary, ...fieldBinary])
                     }
