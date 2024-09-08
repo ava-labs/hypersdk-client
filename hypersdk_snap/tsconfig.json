@@ -15,7 +15,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2020",
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts",

@@ -1,11 +1,11 @@
 import { bytesToHex } from '@noble/hashes/utils'
 import { idStringToBigInt } from './cb58'
 import { hexToBytes } from '@noble/curves/abstract/utils'
-import { Marshaler } from "./Marshaler";
+import { Marshaler, VMABI } from "./Marshaler";
 import { parseBech32 } from './bech32';
 import { base64 } from '@scure/base';
 import { signTransactionBytes, TransactionPayload } from './sign';
-
+import fs from 'fs'
 
 describe.skip('tx', () => {
   it('has to have at least one test', () => {
@@ -13,29 +13,27 @@ describe.skip('tx', () => {
   })
 })
 
-// test('Empty transaction', () => {
-//   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH")
+test('Empty transaction', () => {
+  const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH")
 
-//   const tx: TransactionPayload = {
-//     timestamp: "1717111222000",
-//     chainId: String(chainId),
-//     maxFee: String(10n * (10n ** 9n)),
-//     actions: [],
-//   }
+  const tx: TransactionPayload = {
+    timestamp: "1717111222000",
+    chainId: String(chainId),
+    maxFee: String(10n * (10n ** 9n)),
+    actions: [],
+  }
 
-//   const marshaler = new Marshaler('[]')
-//   expect(bytesToHex(marshaler.getHash())).toBe(
-//     "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-//   )
+  const abiJSON = fs.readFileSync(`./src/testdata/abi.abi.json`, 'utf8')
+  const marshaler = new Marshaler(JSON.parse(abiJSON) as VMABI)
 
-//   const txDigest = marshaler.encodeTransaction(tx)
+  const txDigest = marshaler.encodeTransaction(tx)
 
-//   expect(
-//     bytesToHex(txDigest)
-//   ).toBe(
-//     "0000018fcbcdeef0" + "d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d2509024" + "00000002540be4" + "0000"
-//   );
-// })
+  expect(
+    bytesToHex(txDigest)
+  ).toBe(
+    "0000018fcbcdeef0" + "d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d2509024" + "00000002540be4" + "0000"
+  );
+})
 
 // test('Single action tx sign and marshal', async () => {
 //   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH");

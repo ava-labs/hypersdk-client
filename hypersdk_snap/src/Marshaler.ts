@@ -4,7 +4,7 @@ import { parse } from 'lossless-json'
 import { TransactionPayload } from './sign';
 import { parseBech32 } from './bech32';
 import { base64 } from '@scure/base';
-
+import ABIsABI from './testdata/abi.abi.json'
 
 export type VMABI = {
     actions: SingleActionABI[]
@@ -27,17 +27,16 @@ type ABIField = {
 }
 
 export class Marshaler {
-    private abi: VMABI
-
-    constructor(private abiString: string) {
-        this.abi = JSON.parse(abiString) as VMABI
+    constructor(private abi: VMABI) {
         if (!Array.isArray(this.abi?.actions)) {
-            throw new Error('Invalid ABI: ABI must be an array of single action ABIs')
+            throw new Error('Invalid ABI')
         }
     }
 
     getHash(): Uint8Array {
-        return sha256(this.abiString)
+        const abiAbiMarshaler = new Marshaler(ABIsABI)
+        const abiBytes = abiAbiMarshaler.getActionBinary("VMABI", JSON.stringify(this.abi))
+        return sha256(abiBytes)
     }
 
     getActionBinary(actionName: string, dataJSON: string): Uint8Array {
@@ -77,12 +76,12 @@ export class Marshaler {
     }
 
     private getActionTypeId(actionName: string): number {
-        const actionABI = this.abi.actions.find(abi => abi.name === actionName)
+        const actionABI = this.abi.actions.find(action => action.name === actionName)
         if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
         return actionABI.id
     }
 
-    private encodeField(type: string, value: unknown): Uint8Array {
+    private encodeField(type: string, value: unknown, parentActionName?: string): Uint8Array {
         if (type === 'Address' && typeof value === 'string') {
             return encodeAddress(value)
         }
@@ -119,21 +118,25 @@ export class Marshaler {
                 return encodeString(value as string)
             default:
                 {
-                    const actionABI = this.abi.actions.find(abi => abi.name === type)
-                    if (!actionABI) throw new Error(`No action ABI found: ${type}`)
-
-                    const structABI = actionABI.types.find(struct => struct.name === type)
+                    let structABI: SingleTypeABI | null = null
+                    for (const action of this.abi.actions) {
+                        for (const typ of action.types) {
+                            if (typ.name === type) {
+                                structABI = typ
+                                break
+                            }
+                        }
+                    }
                     if (!structABI) throw new Error(`No struct ${type} found in action ${type} ABI`)
 
                     const dataRecord = value as Record<string, unknown>;
                     let resultingBinary = new Uint8Array()
                     for (const field of structABI.fields) {
-                        const fieldBinary = this.encodeField(field.type, dataRecord[field.name]);
+                        const fieldBinary = this.encodeField(field.type, dataRecord[field.name], type);
                         resultingBinary = new Uint8Array([...resultingBinary, ...fieldBinary])
                     }
                     return resultingBinary
                 }
-
         }
     }
 
