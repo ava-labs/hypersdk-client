@@ -35,54 +35,37 @@ test('Empty transaction', () => {
   );
 })
 
-// test('Single action tx sign and marshal', async () => {
-//   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH");
-//   const addrString = "morpheus1qqds2l0ryq5hc2ddps04384zz6rfeuvn3kyvn77hp4n5sv3ahuh6wgkt57y";
-//   const abi = `[{
-//         "id": 0,
-//         "name": "Transfer",
-//         "types": {
-//           "Transfer": [
-//             {
-//               "name": "to",
-//               "type": "Address"
-//             },
-//             {
-//               "name": "value",
-//               "type": "uint64"
-//             },
-//             {
-//               "name": "memo",
-//               "type": "[]uint8"
-//             }
-//           ]
-//         }
-// }]`//TODO: replace with actual abi
+test('Single action tx sign and marshal', async () => {
+  const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH");
+  const addrString = "morpheus1qqds2l0ryq5hc2ddps04384zz6rfeuvn3kyvn77hp4n5sv3ahuh6wgkt57y";
 
-//   const actionData = {
-//     actionName: "Transfer",
-//     data: {
-//       to: addrString,
-//       value: "123",
-//       memo: base64.encode(new TextEncoder().encode("memo")),
-//     }
-//   }
+  const abiJSON = fs.readFileSync(`./src/testdata/abi.json`, 'utf8')
+  const marshaler = new Marshaler(JSON.parse(abiJSON) as VMABI)
 
-//   const tx: TransactionPayload = {
-//     timestamp: "1717111222000",
-//     chainId: String(chainId),
-//     maxFee: String(10n * (10n ** 9n)),
-//     actions: [actionData],
-//   }
 
-//   const marshaler = new Marshaler(abi)
-//   const digest = marshaler.encodeTransaction(tx)
-//   expect(Buffer.from(digest).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000100001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f");
+  const actionData = {
+    actionName: "MockActionTransfer",
+    data: {
+      to: addrString,
+      value: "123",
+      memo: "memo",
+    }
+  }
 
-//   const privateKeyHex = "323b1d8f4eed5f0da9da93071b034f2dce9d2d22692c172f3cb252a64ddfafd01b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7";
-//   const privateKey = hexToBytes(privateKeyHex).slice(0, 32)
+  const tx: TransactionPayload = {
+    timestamp: "1717111222000",
+    chainId: String(chainId),
+    maxFee: String(10n * (10n ** 9n)),
+    actions: [actionData],
+  }
 
-//   const signedTxBytes = signTransactionBytes(digest, privateKey);
+  const digest = marshaler.encodeTransaction(tx)
+  expect(Buffer.from(digest).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000102001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f");
 
-//   expect(Buffer.from(signedTxBytes).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000100001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa739bc9d7a4e74beafcb45cd8fe12200beeb4dac5569407426315eb382d8d11024c5f73200da58f24d8fe9467d86ec0a0c8c2ccb3c15d78e14fd93c66f4a73d802");
-// });
+  const privateKeyHex = "323b1d8f4eed5f0da9da93071b034f2dce9d2d22692c172f3cb252a64ddfafd01b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7";
+  const privateKey = hexToBytes(privateKeyHex).slice(0, 32)
+
+  const signedTxBytes = signTransactionBytes(digest, privateKey);
+
+  expect(Buffer.from(signedTxBytes).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000102001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7113adacdd9eea506ef7c5ff9a2a99e9ffe51979488c9af4313ca6b95252cc0ecc4f38ad3b57afbac7a1f983dca5fe4c417bc0668bde68aa8d824325f1baa7704");
+});
