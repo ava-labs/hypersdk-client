@@ -16,10 +16,9 @@
     "strict": true,
     "target": "es2020",
     "baseUrl": "./",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@metamask/snaps-sdk",
     "resolveJsonModule": true
   },
-  "include": [
-    "**/*.ts",
-    "src/ui.tsx"
-  ]
+  "include": ["**/*.ts", "**/*.tsx"]
 }
