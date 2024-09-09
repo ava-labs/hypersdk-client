@@ -1,13 +1,13 @@
 {
-  "name": "snap",
-  "version": "0.1.0",
+  "name": "sample-metamask-snap-for-hypersdk",
+  "version": "0.3.0",
   "description": "The 'Hello, world!' of MetaMask Snaps, now written in TypeScript.",
   "repository": {
     "type": "git",
     "url": "https://github.com/MetaMask/template-snap-monorepo.git"
   },
-  "license": "(MIT-0 OR Apache-2.0)",
-  "main": "./dist/bundle.js",
+  "license": "NOT_DECIDED_YET_TODO_FIX",
+    "main": "./dist/bundle.js",
   "files": [
     "dist/",
     "src/",
@@ -25,7 +25,9 @@
     "prepublishOnly": "mm-snap manifest",
     "serve": "mm-snap serve",
     "start": "mm-snap watch",
-    "test": "jest"
+    "test": "jest",
+    "dev": "mm-snap watch",
+    "release": "npm run build && npm publish"
   },
   "dependencies": {
     "@metamask/snaps-sdk": "^6.1.1",
@@ -60,7 +62,6 @@
     "ts-jest": "^29.1.0",
     "typescript": "~5.0"
   },
-  "packageManager": "yarn@3.2.1",
   "engines": {
     "node": ">=18.6.0"
   },
