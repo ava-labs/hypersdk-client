@@ -54,7 +54,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                 },
             });
         case 'signTransaction':
-            const { derivationPath, tx, abi } = (request.params || {}) as { derivationPath?: string[], tx: TransactionPayload, abi: VMABI };
+            const { tx, abi } = (request.params || {}) as { tx: TransactionPayload, abi: VMABI };
 
             const marshaler = new Marshaler(abi);
             const digest = marshaler.encodeTransaction(tx);
