@@ -67,18 +67,18 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                         <Box>
                             <Heading>Sign Transaction</Heading>
                             <Divider />
-                            {/* {tx.actions.map((action, index) => (
-                                <Box key={index}>
-                                    <Heading key={index}>{action.actionName}</Heading>
+                             {tx.actions.map((action, index) => (
+                                <Box key={`${index}`}>
+                                    <Heading key={`${index}`}>{action.actionName}</Heading>
                                     {Object.entries(action.data).map(([key, value], entryIndex) => (
-                                        <Box key={entryIndex}>
-                                            <Text key={entryIndex}>{key}:</Text>
-                                            <Copyable key={entryIndex} value={JSON.stringify(value, null, 2)} />
+                                        <Box key={`${index}-${entryIndex}`}>
+                                            <Text key={`${index}-${entryIndex}`}>{key}:</Text>
+                                            <Copyable key={`${index}-${entryIndex}`} value={JSON.stringify(value, null, 2)} />
                                             <Divider />
                                         </Box>
-                                    ))}
+                                    ))} 
                                 </Box>
-                            ))} */}
+                            ))} 
                             <Text>
                                 Warning: This JSON might have extra fields, field validation is not implemented yet.
                             </Text>
