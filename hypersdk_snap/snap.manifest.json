@@ -1,17 +1,17 @@
 {
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "An example Snap written in TypeScript.",
-  "proposedName": "TypeScript Example",
+  "proposedName": "HyperSDK Snap",
   "repository": {
     "type": "git",
     "url": "https://github.com/MetaMask/template-snap-monorepo.git"
   },
   "source": {
-    "shasum": "qi+PrnX7CSs8YkYrg+t6jzP2gYMtk46kXojjvGk/2iA=",
+    "shasum": "Zj18aNfLU+8l1Rl6BBhXKVSe1p4vmGxV6pX695Inh6s=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
-        "packageName": "snap",
+        "packageName": "sample-metamask-snap-for-hypersdk",
         "registry": "https://registry.npmjs.org/"
       }
     }
