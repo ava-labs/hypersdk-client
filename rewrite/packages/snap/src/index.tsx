@@ -1,6 +1,5 @@
 import type { OnRpcRequestHandler } from '@metamask/snaps-sdk';
 import { Box, Text, Bold } from '@metamask/snaps-sdk/jsx';
-import { assertInput, assertIsArray } from './assert';
 import nacl from 'tweetnacl';
 import { base58 } from '@scure/base';
 import { SLIP10Node } from '@metamask/key-tree';
@@ -22,8 +21,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
   const keyPair = await deriveKeyPair();
 
-  const pubkey = base58.encode(keyPair.publicKey);
-
 
   switch (request.method) {
     case 'hello':
@@ -34,7 +31,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           content: (
             <Box>
               <Text>
-                Hello, <Bold>{pubkey}</Bold>!
+                Hello, <Bold>{origin}</Bold>!
               </Text>
               <Text>
                 This custom confirmation is just for display purposes.
@@ -47,9 +44,19 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ),
         },
       });
+    case 'signTransaction':
+      return "unimplemented"
+      // const marshaler = new Marshaler(abi);
+      // const digest = marshaler.encodeTransaction(tx);
+
+      // const accepted = await renderSignBytes(tx);
+      // assertConfirmation(!!accepted);
+  
+      // const signedTxBytes = signTransactionBytes(digest, keyPair.secretKey.slice(0, 32));
+  
+      // return base58.encode(signedTxBytes);
     case 'getPublicKey':
-     
-      return pubkey;
+      return base58.encode(keyPair.publicKey);
     default:
       throw new Error('Method not found.');
   }
@@ -57,8 +64,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
 
 async function deriveKeyPair(pathSuffix: string[] = ["0'"]): Promise<nacl.SignKeyPair> {
-  assertIsArray(pathSuffix);
-  assertInput(pathSuffix.every((segment) => isValidSegment(segment)));
+  if(!Array.isArray(pathSuffix)) {
+    throw32K('Invalid path suffix');
+  }
+
+  if (!pathSuffix.every((segment) => isValidSegment(segment))) {
+    throw32K('Invalid path suffix');
+  }
 
   const rootNode = await snap.request({
     method: 'snap_getBip32Entropy',
@@ -99,3 +111,9 @@ export function isValidSegment(segment: string) {
   return true;
 }
 
+function throw32K(message: string) {
+  throw {
+    code: -32000,
+    message: message
+  };
+}

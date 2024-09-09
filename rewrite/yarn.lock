@@ -13367,6 +13367,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lossless-json@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "lossless-json@npm:4.0.1"
+  checksum: 41e89f5b7800cf5f863776542c82d8a19a696e5537865699d5ee062726d069561f7b857e838195496f2a43afe64a7dce475be5a2565822881f39feb0eda5d218
+  languageName: node
+  linkType: hard
+
 "lower-case-first@npm:^2.0.2":
   version: 2.0.2
   resolution: "lower-case-first@npm:2.0.2"
@@ -16976,6 +16983,7 @@ __metadata:
     eslint-plugin-prettier: ^4.2.1
     eslint-plugin-promise: ^6.1.1
     jest: ^29.5.0
+    lossless-json: ^4.0.1
     prettier: ^2.7.1
     prettier-plugin-packagejson: ^2.2.11
     rimraf: ^3.0.2
