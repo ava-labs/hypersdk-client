@@ -7,7 +7,7 @@
     "url": "https://github.com/MetaMask/template-snap-monorepo.git"
   },
   "license": "NOT_DECIDED_YET_TODO_FIX",
-    "main": "./dist/bundle.js",
+  "main": "./dist/bundle.js",
   "files": [
     "dist/",
     "src/",
@@ -30,7 +30,9 @@
     "release": "npm run build && npm publish"
   },
   "dependencies": {
+    "@metamask/sdk": "^0.28.2",
     "@metamask/snaps-sdk": "^6.1.1",
+    "@noble/curves": "^1.6.0",
     "@scure/base": "^1.1.8",
     "buffer": "^6.0.3",
     "lossless-json": "^4.0.1",
@@ -51,7 +53,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "~2.26.0",
     "eslint-plugin-jest": "^27.1.5",
-    "eslint-plugin-jsdoc": "^41.1.2",
+    "eslint-plugin-jsdoc": "^43.2.0",
     "eslint-plugin-n": "^15.7.0",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.1.1",
