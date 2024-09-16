@@ -1,22 +1,23 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
-import { TransactionPayload } from './sign';
 import { parseBech32 } from './bech32';
 import { base64 } from '@scure/base';
 import ABIsABI from './testdata/abi.abi.json'
+import { TransactionPayload } from '.';
 
 export type VMABI = {
-    actions: SingleActionABI[]
+    actions: ActionABI[]
+    types: TypeABI[]
 }
 
-type SingleActionABI = {
+type ActionABI = {
     id: number
-    name: string
-    types: SingleTypeABI[]
+    action: string
+    output?: string
 }
 
-type SingleTypeABI = {
+type TypeABI = {
     name: string,
     fields: ABIField[]
 }
@@ -35,7 +36,7 @@ export class Marshaler {
 
     getHash(): Uint8Array {
         const abiAbiMarshaler = new Marshaler(ABIsABI)
-        const abiBytes = abiAbiMarshaler.getActionBinary("VMABI", JSON.stringify(this.abi))
+        const abiBytes = abiAbiMarshaler.getActionBinary("ABI", JSON.stringify(this.abi))
         return sha256(abiBytes)
     }
 
@@ -76,7 +77,7 @@ export class Marshaler {
     }
 
     private getActionTypeId(actionName: string): number {
-        const actionABI = this.abi.actions.find(action => action.name === actionName)
+        const actionABI = this.abi.actions.find(action => action.action === actionName)
         if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
         return actionABI.id
     }
@@ -86,14 +87,7 @@ export class Marshaler {
             return encodeAddress(value)
         }
 
-        if (type === 'StringAsBytes' && typeof value === 'string') {
-            const encoder = new TextEncoder();
-            const bytes = encoder.encode(value);
-            const base64 = btoa(String.fromCharCode(...bytes));
-            return this.encodeField('[]uint8', base64);
-        }
-
-        if ((type === '[]uint8') && typeof value === 'string') {
+        if ((type === '[]uint8'||type === 'Bytes') && typeof value === 'string') {
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }
@@ -118,13 +112,11 @@ export class Marshaler {
                 return encodeString(value as string)
             default:
                 {
-                    let structABI: SingleTypeABI | null = null
-                    for (const action of this.abi.actions) {
-                        for (const typ of action.types) {
-                            if (typ.name === type) {
-                                structABI = typ
-                                break
-                            }
+                    let structABI: TypeABI | null = null
+                    for (const typ of this.abi.types) {
+                        if (typ.name === type) {
+                            structABI = typ
+                            break
                         }
                     }
                     if (!structABI) throw new Error(`No struct ${type} found in action ${type} ABI`)

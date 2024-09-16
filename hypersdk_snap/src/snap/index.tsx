@@ -1,11 +1,10 @@
 import type { OnRpcRequestHandler } from '@metamask/snaps-sdk';
-import { Box, Text, Bold, Copyable, Divider, Heading } from '@metamask/snaps-sdk/jsx';
+import { Box, Text, Bold, Divider, Heading, BoxProps } from '@metamask/snaps-sdk/jsx';
 import nacl from 'tweetnacl';
 import { base58 } from '@scure/base';
 import { SLIP10Node } from '@metamask/key-tree';
-import { ED25519_AUTH_ID } from './bech32';
-import { ed25519 } from "@noble/curves/ed25519";
 import { Marshaler, VMABI } from './Marshaler';
+import { PrivateKeySigner } from '../client/PrivateKeySigner';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -96,11 +95,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                 throw { code: -32000, message: 'error deriving key pair' }
             }
 
-            const signature = ed25519.sign(digest, privateKey);
-            const pubKey = ed25519.getPublicKey(privateKey);
-            const signedTxBytes = new Uint8Array([...digest, ED25519_AUTH_ID, ...pubKey, ...signature]);
-
-            return base58.encode(signedTxBytes);
+            const signer = new PrivateKeySigner(privateKey);
+          
+            return base58.encode(await signer.signTx(tx, abi));
         case 'getPublicKey':
             return base58.encode(keyPair.publicKey);
         default:

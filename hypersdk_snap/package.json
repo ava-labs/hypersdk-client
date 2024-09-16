@@ -1,5 +1,5 @@
 {
-  "name": "sample-metamask-snap-for-hypersdk",
+  "name": "hypersdk-client",
   "version": "0.3.0",
   "description": "The 'Hello, world!' of MetaMask Snaps, now written in TypeScript.",
   "repository": {
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@metamask/sdk": "^0.28.2",
-    "@metamask/snaps-sdk": "^6.1.1",
+    "@metamask/snaps-sdk": "^6.5.0",
     "@noble/curves": "^1.6.0",
     "@scure/base": "^1.1.8",
     "buffer": "^6.0.3",

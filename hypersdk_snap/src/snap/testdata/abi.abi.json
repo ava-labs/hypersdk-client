@@ -1,60 +1,64 @@
 {
     "actions": [
         {
-            "id": 255,
-            "name": "VMABI",
-            "types": [
+            "id": 0,
+            "action": "ABI"
+        }
+    ],
+    "types": [
+        {
+            "name": "ABI",
+            "fields": [
                 {
-                    "name": "VMABI",
-                    "fields": [
-                        {
-                            "name": "actions",
-                            "type": "[]SingleActionABI"
-                        }
-                    ]
+                    "name": "actions",
+                    "type": "[]Action"
                 },
                 {
-                    "name": "SingleActionABI",
-                    "fields": [
-                        {
-                            "name": "id",
-                            "type": "uint8"
-                        },
-                        {
-                            "name": "name",
-                            "type": "string"
-                        },
-                        {
-                            "name": "types",
-                            "type": "[]SingleTypeABI"
-                        }
-                    ]
+                    "name": "types",
+                    "type": "[]Type"
+                }
+            ]
+        },
+        {
+            "name": "Action",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint8"
                 },
                 {
-                    "name": "SingleTypeABI",
-                    "fields": [
-                        {
-                            "name": "name",
-                            "type": "string"
-                        },
-                        {
-                            "name": "fields",
-                            "type": "[]ABIField"
-                        }
-                    ]
+                    "name": "action",
+                    "type": "string"
                 },
                 {
-                    "name": "ABIField",
-                    "fields": [
-                        {
-                            "name": "name",
-                            "type": "string"
-                        },
-                        {
-                            "name": "type",
-                            "type": "string"
-                        }
-                    ]
+                    "name": "output",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Type",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "fields",
+                    "type": "[]Field"
+                }
+            ]
+        },
+        {
+            "name": "Field",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "type",
+                    "type": "string"
                 }
             ]
         }

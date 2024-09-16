@@ -2,6 +2,7 @@ import { TransactionPayload } from "src/snap";
 import { SignerIface } from "./types";
 import { ed25519 } from "@noble/curves/ed25519";
 import { Marshaler, VMABI } from "../snap/Marshaler";
+import { ED25519_AUTH_ID } from "../snap/bech32";
 
 export class PrivateKeySigner implements SignerIface {
     constructor(private privateKey: Uint8Array) {
@@ -13,8 +14,11 @@ export class PrivateKeySigner implements SignerIface {
     async signTx(txPayload: TransactionPayload, abi: VMABI): Promise<Uint8Array> {
         const marshaler = new Marshaler(abi);
         const digest = marshaler.encodeTransaction(txPayload);
-        const signedTxBytes = signTransactionBytes(digest, this.privateKey);
-        return signedTxBytes;
+        const signature = ed25519.sign(digest, this.privateKey);
+
+        const pubKey = ed25519.getPublicKey(this.privateKey);
+
+        return new Uint8Array([...digest, ED25519_AUTH_ID, ...pubKey, ...signature])
     }
 
     getPublicKey(): Uint8Array {
@@ -25,7 +29,3 @@ export class PrivateKeySigner implements SignerIface {
         // No-op
     }
 }
-function signTransactionBytes(digest: Uint8Array, privateKey: Uint8Array): Uint8Array {
-    throw new Error("Function not implemented.");
-}
-
