@@ -87,7 +87,7 @@ export class Marshaler {
             return encodeAddress(value)
         }
 
-        if ((type === '[]uint8'||type === 'Bytes') && typeof value === 'string') {
+        if ((type === '[]uint8' || type === 'Bytes') && typeof value === 'string') {
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }

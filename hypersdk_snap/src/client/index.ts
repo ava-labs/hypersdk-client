@@ -66,7 +66,7 @@ export abstract class HyperSDKBaseClient extends EventTarget {
     private abiCache: VMABI | null = null;
     public async getAbi(): Promise<VMABI> {
         if (!this.abiCache) {
-            this.abiCache = (await this.makeCoreAPIRequest<{ vmabi: VMABI }>('getABI')).vmabi
+            this.abiCache = (await this.makeCoreAPIRequest<{ abi: VMABI }>('getABI')).abi
         }
         return this.abiCache || {}
     }
@@ -134,7 +134,7 @@ export abstract class HyperSDKBaseClient extends EventTarget {
     private async makeApiRequest<T>(namespace: string, method: string, params: object = {}): Promise<T> {
         const controller = new AbortController();
         const TIMEOUT_SEC = 10
-        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_SEC*1000);
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_SEC * 1000);
 
         try {
             const response = await fetch(`${this.apiHost}/ext/bc/${this.vmName}/${namespace}`, {

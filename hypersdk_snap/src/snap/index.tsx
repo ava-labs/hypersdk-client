@@ -1,9 +1,9 @@
 import type { OnRpcRequestHandler } from '@metamask/snaps-sdk';
-import { Box, Text, Bold, Divider, Heading, BoxProps } from '@metamask/snaps-sdk/jsx';
+import { Box, Text, Bold, Divider, Heading } from '@metamask/snaps-sdk/jsx';
 import nacl from 'tweetnacl';
 import { base58 } from '@scure/base';
 import { SLIP10Node } from '@metamask/key-tree';
-import { Marshaler, VMABI } from './Marshaler';
+import { VMABI } from './Marshaler';
 import { PrivateKeySigner } from '../client/PrivateKeySigner';
 
 /**
@@ -55,9 +55,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         case 'signTransaction':
             const { tx, abi } = (request.params || {}) as { tx: TransactionPayload, abi: VMABI };
 
-            const marshaler = new Marshaler(abi);
-            const digest = marshaler.encodeTransaction(tx);
-
             const accepted = await snap.request({
                 method: 'snap_dialog',
                 params: {
@@ -66,7 +63,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                         <Box>
                             <Heading>Sign Transaction</Heading>
                             <Divider />
-                             {tx.actions.map((action, index) => (
+                            {tx.actions.map((action, index) => (
                                 <Box key={`${index}`}>
                                     <Heading key={`${index}`}>{action.actionName}</Heading>
                                     {Object.entries(action.data).map(([key, value], entryIndex) => (
@@ -75,9 +72,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                                             <Copyable key={`${index}-${entryIndex}`} value={JSON.stringify(value, null, 2)} />
                                             <Divider />
                                         </Box>
-                                    ))} 
+                                    ))}
                                 </Box>
-                            ))} 
+                            ))}
                             <Text>
                                 Warning: This JSON might have extra fields, field validation is not implemented yet.
                             </Text>
@@ -96,7 +93,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             }
 
             const signer = new PrivateKeySigner(privateKey);
-          
+
             return base58.encode(await signer.signTx(tx, abi));
         case 'getPublicKey':
             return base58.encode(keyPair.publicKey);
@@ -104,7 +101,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             throw new Error('Method not found.');
     }
 };
-
 
 export function isValidSegment(segment: string) {
     if (typeof segment !== 'string') {
