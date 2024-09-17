@@ -1,4 +1,4 @@
-import { TransactionPayload } from "src/snap";
+import { TransactionPayload } from "../snap";
 import { SignerIface } from "./types";
 import { ed25519 } from "@noble/curves/ed25519";
 import { Marshaler, VMABI } from "../snap/Marshaler";

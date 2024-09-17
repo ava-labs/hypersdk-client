@@ -76,7 +76,7 @@ export class Marshaler {
         ]);
     }
 
-    private getActionTypeId(actionName: string): number {
+    public getActionTypeId(actionName: string): number {
         const actionABI = this.abi.actions.find(action => action.action === actionName)
         if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
         return actionABI.id
@@ -88,6 +88,7 @@ export class Marshaler {
         }
 
         if ((type === '[]uint8' || type === 'Bytes') && typeof value === 'string') {
+            console.log(`encoding Bytes: ${value}`)
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }

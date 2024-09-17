@@ -5,7 +5,8 @@ import { PrivateKeySigner } from './PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
-import { VMABI } from '../snap/Marshaler';
+import { Marshaler, VMABI } from '../snap/Marshaler';
+import { ED25519_AUTH_ID } from '../snap/bech32';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
 const MAX_TX_FEE_TEMP = 10000000n
@@ -32,6 +33,7 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         protected readonly apiHost: string,//for example: http://localhost:9650
         protected readonly vmName: string,//for example: hypervm
         protected readonly vmRPCPrefix: string,//for example: hyperapi
+        protected readonly HRP: string,
         protected readonly decimals: number = 9,
     ) {
         super();
@@ -119,6 +121,26 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         const remainder = balance % divisor;
         const paddedRemainder = remainder.toString().padStart(this.decimals, '0');
         return `${quotient}.${paddedRemainder}`;
+    }
+
+    public async executeReadonlyAction(action: ActionData) {
+        const marshaler = await this.getMarshaler();
+        const actionBytes = marshaler.getActionBinary(action.actionName, JSON.stringify(action.data))
+        const result = await this.makeCoreAPIRequest('executeAction', {
+            actionBytes: base64.encode(actionBytes),
+            actionId: marshaler.getActionTypeId(action.actionName),
+            actor: [ED25519_AUTH_ID, ...this.getSigner().getPublicKey()]
+        })
+        return result;
+    }
+
+    private marshaler: Marshaler | null = null;
+    private async getMarshaler() {
+        if (!this.marshaler) {
+            const abi = await this.getAbi();
+            this.marshaler = new Marshaler(abi);
+        }
+        return this.marshaler;
     }
 
     //protected methods intended to be used by subclasses
