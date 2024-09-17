@@ -47,6 +47,182 @@ export class Marshaler {
         return this.encodeField(actionName, data)
     }
 
+
+    parseStructBinary(outputType: string, actionResultBinary: Uint8Array): unknown {
+        // Handle primitive types
+        if (this.isPrimitiveType(outputType)) {
+            const [value, _] = this.decodeField(outputType, actionResultBinary);
+            return value;
+        }
+
+        // Handle struct types
+        let structABI = this.abi.types.find((type) => type.name === outputType);
+        if (!structABI) {
+            throw new Error(`No struct ABI found for type ${outputType}`);
+        }
+
+        let result: Record<string, unknown> = {};
+        let offset = 0;
+
+        for (const field of structABI.fields) {
+            const fieldType = field.type;
+
+            // Decode field based on type
+            const [decodedValue, bytesConsumed] = this.decodeField(fieldType, actionResultBinary.subarray(offset));
+            result[field.name] = decodedValue;
+            offset += bytesConsumed;
+        }
+
+        return result;
+    }
+
+    // Add this helper method to check if a type is primitive
+    private isPrimitiveType(type: string): boolean {
+        const primitiveTypes = [
+            "uint8", "uint16", "uint32", "uint64", "uint256",
+            "int8", "int16", "int32", "int64",
+            "string", "Address", "[]uint8", "Bytes"
+        ];
+        return primitiveTypes.includes(type) || type.startsWith('[]');
+    }
+
+    private decodeField(type: string, binaryData: Uint8Array): [unknown, number] {
+        // Decodes field and returns value and the number of bytes consumed.
+        switch (type) {
+            case "uint8":
+            case "uint16":
+            case "uint32":
+            case "uint64":
+            case "uint256":
+                return [this.decodeNumber(type, binaryData), this.getByteSize(type)];
+            case "string":
+                return this.decodeString(binaryData);
+            case "Address":
+                return this.decodeAddress(binaryData);
+            case "[]uint8":
+            case "Bytes":
+                return this.decodeBytes(binaryData);
+            case "int8":
+            case "int16":
+            case "int32":
+            case "int64":
+                return [this.decodeNumber(type, binaryData), this.getByteSize(type)];
+            default:
+                // Handle arrays and structs
+                if (type.startsWith('[]')) {
+                    return this.decodeArray(type.slice(2), binaryData);
+                } else {
+                    // Struct type
+                    const decodedStruct = this.parseStructBinary(type, binaryData);
+                    const bytesConsumed = this.getStructByteSize(type, binaryData);
+                    return [decodedStruct, bytesConsumed];
+                }
+        }
+    }
+
+    private decodeNumber(type: string, binaryData: Uint8Array): bigint | number {
+        const dataView = new DataView(binaryData.buffer, binaryData.byteOffset, binaryData.byteLength);
+        let result: bigint | number;
+
+        switch (type) {
+            case "uint8":
+                result = dataView.getUint8(0);
+                break;
+            case "uint16":
+                result = dataView.getUint16(0, false);
+                break;
+            case "uint32":
+                result = dataView.getUint32(0, false);
+                break;
+            case "uint64":
+                result = dataView.getBigUint64(0, false);
+                break;
+            case "int8":
+                result = dataView.getInt8(0);
+                break;
+            case "int16":
+                result = dataView.getInt16(0, false);
+                break;
+            case "int32":
+                result = dataView.getInt32(0, false);
+                break;
+            case "int64":
+                result = dataView.getBigInt64(0, false);
+                break;
+            default:
+                throw new Error(`Unsupported number type: ${type}`);
+        }
+
+        console.log(`Decoding ${type}:`, {
+            rawBytes: Array.from(binaryData).map(b => b.toString(16).padStart(2, '0')).join(' '),
+            decodedValue: result.toString()
+        });
+
+        return result;
+    }
+
+    private getByteSize(type: string): number {
+        switch (type) {
+            case "uint8": return 1;
+            case "uint16": return 2;
+            case "uint32": return 4;
+            case "uint64": return 8;
+            case "uint256": return 32;
+            case "int8": return 1;
+            case "int16": return 2;
+            case "int32": return 4;
+            case "int64": return 8;
+            default: throw new Error(`Unknown type for byte size: ${type}`);
+        }
+    }
+
+    private decodeString(binaryData: Uint8Array): [string, number] {
+        const length = this.decodeNumber("uint16", binaryData) as number;
+        const textDecoder = new TextDecoder();
+        const stringBytes = binaryData.subarray(2, 2 + length); // Skip the length bytes
+        return [textDecoder.decode(stringBytes), 2 + length];
+    }
+
+    private decodeAddress(binaryData: Uint8Array): [string, number] {
+        const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
+        return [base64.encode(addressBytes), 33];
+    }
+
+    private decodeBytes(binaryData: Uint8Array): [string, number] {
+        const length = this.decodeNumber("uint32", binaryData) as number;
+        const byteArray = binaryData.subarray(4, 4 + length); // Skip the length bytes
+        const base64String = base64.encode(byteArray);
+        return [base64String, 4 + length];
+    }
+
+    private decodeArray(type: string, binaryData: Uint8Array): [unknown[], number] {
+        const length = this.decodeNumber("uint32", binaryData) as number;
+        let offset = 4; // Skip the length bytes
+        let resultArray = [];
+        for (let i = 0; i < length; i++) {
+            const [decodedValue, bytesConsumed] = this.decodeField(type, binaryData.subarray(offset));
+            resultArray.push(decodedValue);
+            offset += bytesConsumed;
+        }
+        return [resultArray, offset];
+    }
+
+    private getStructByteSize(type: string, binaryData: Uint8Array): number {
+        const structABI = this.abi.types.find((t) => t.name === type);
+        if (!structABI) {
+            throw new Error(`No struct ABI found for type ${type}`);
+        }
+
+        let totalSize = 0;
+        for (const field of structABI.fields) {
+            const [_, bytesConsumed] = this.decodeField(field.type, binaryData.subarray(totalSize));
+            totalSize += bytesConsumed;
+        }
+        return totalSize;
+    }
+
+
+
     encodeTransaction(tx: TransactionPayload): Uint8Array {
         if (tx.timestamp.slice(-3) !== "000") {
             tx.timestamp = String(Math.floor(parseInt(tx.timestamp) / 1000) * 1000)
@@ -88,7 +264,6 @@ export class Marshaler {
         }
 
         if ((type === '[]uint8' || type === 'Bytes') && typeof value === 'string') {
-            console.log(`encoding Bytes: ${value}`)
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }
@@ -102,8 +277,6 @@ export class Marshaler {
             case "uint16":
             case "uint32":
             case "uint64":
-            case "uint256":
-            //TODO: implement uint128, int128, and int256 if needed
             case "int8":
             case "int16":
             case "int32":
