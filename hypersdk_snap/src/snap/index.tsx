@@ -31,27 +31,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
 
     switch (request.method) {
-        case 'hello':
-            return snap.request({
-                method: 'snap_dialog',
-                params: {
-                    type: 'confirmation',
-                    content: (
-                        <Box>
-                            <Text>
-                                Hello, <Bold>{origin}</Bold>!
-                            </Text>
-                            <Text>
-                                This custom confirmation is just for display purposes.
-                            </Text>
-                            <Text>
-                                But you can edit the snap source code to make it do something,
-                                if you want to!
-                            </Text>
-                        </Box>
-                    ),
-                },
-            });
         case 'signTransaction':
             const { tx, abi } = (request.params || {}) as { tx: TransactionPayload, abi: VMABI };
 
