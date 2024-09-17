@@ -3,6 +3,7 @@ import MetaMaskSDK, { SDKProvider } from "@metamask/sdk";
 import { SignerIface } from "./types";
 import { TransactionPayload } from '../snap';
 import snapPkgJson from "../../package.json";
+import { VMABI } from '../snap/Marshaler';
 
 export const DEFAULT_SNAP_ID = `npm:${snapPkgJson.name}`;
 
@@ -25,7 +26,6 @@ async function getProvider(): Promise<SDKProvider> {
     return cachedProvider;
 }
 
-type VMABI = any//FIXME: import from sample-metamask-snap-for-hypersdk
 
 export class MetamaskSnapSigner implements SignerIface {
     private cachedPublicKey: Uint8Array | null = null;
@@ -73,7 +73,7 @@ export class MetamaskSnapSigner implements SignerIface {
 
         const pubKey = await this._invokeSnap({
             method: 'getPublicKey',
-            params: { }
+            params: {}
         }) as string | undefined;
 
         if (!pubKey) {

@@ -69,7 +69,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
                                     {Object.entries(action.data).map(([key, value], entryIndex) => (
                                         <Box key={`${index}-${entryIndex}`}>
                                             <Text key={`${index}-${entryIndex}`}>{key}:</Text>
-                                            <Copyable key={`${index}-${entryIndex}`} value={JSON.stringify(value, null, 2)} />
+                                            <Text key={`${index}-${entryIndex}`}>{JSON.stringify(value, null, 2)}</Text>
                                             <Divider />
                                         </Box>
                                     ))}
