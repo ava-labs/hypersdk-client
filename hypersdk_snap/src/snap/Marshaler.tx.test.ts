@@ -2,12 +2,9 @@ import { bytesToHex } from '@noble/hashes/utils'
 import { idStringToBigInt } from './cb58'
 import { hexToBytes } from '@noble/curves/abstract/utils'
 import { Marshaler, VMABI } from "./Marshaler";
-import { parseBech32 } from './bech32';
-import { base64 } from '@scure/base';
 import fs from 'fs'
-import { describe, expect,it ,test} from '@jest/globals';
+import { describe, expect, it, test } from '@jest/globals';
 import { TransactionPayload } from '.';
-import { ed25519 } from '@noble/curves/ed25519';
 import { PrivateKeySigner } from '../client/PrivateKeySigner';
 
 describe.skip('tx', () => {

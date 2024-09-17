@@ -47,6 +47,12 @@ export class Marshaler {
         return this.encodeField(actionName, data)
     }
 
+    getReturnType(actionName: string): string {
+        const actionABI = this.abi.actions.find(action => action.action === actionName)
+        if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
+        return actionABI.output || ''
+    }
+
 
     parseStructBinary(outputType: string, actionResultBinary: Uint8Array): unknown {
         // Handle primitive types
