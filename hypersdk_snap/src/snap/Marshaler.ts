@@ -153,11 +153,6 @@ export class Marshaler {
                 throw new Error(`Unsupported number type: ${type}`);
         }
 
-        console.log(`Decoding ${type}:`, {
-            rawBytes: Array.from(binaryData).map(b => b.toString(16).padStart(2, '0')).join(' '),
-            decodedValue: result.toString()
-        });
-
         return result;
     }
 

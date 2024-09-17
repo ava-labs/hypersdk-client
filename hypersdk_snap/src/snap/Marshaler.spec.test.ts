@@ -1,9 +1,6 @@
 import { bytesToHex } from '@noble/hashes/utils'
-import { idStringToBigInt } from './cb58'
 import { hexToBytes } from '@noble/curves/abstract/utils'
 import { Marshaler, VMABI } from "./Marshaler";
-import { parseBech32 } from './bech32';
-import { base64 } from '@scure/base';
 import fs from 'fs';
 import { describe, expect, it, test } from '@jest/globals';
 import { isLosslessNumber, parse, stringify } from 'lossless-json';
@@ -44,31 +41,19 @@ for (const [testCase, action] of testCases) {
     ).trim();
     const input = fs.readFileSync(`./src/snap/testdata/${testCase}.json`, 'utf8');
 
-    console.log('Input JSON:', input);
-    console.log('Expected hex:', expectedHex);
-
     // Test encoding
     const encodedBinary = marshaler.getActionBinary(action, input);
     const actualHex = bytesToHex(encodedBinary);
-    console.log('Actual encoded hex:', actualHex);
     expect(actualHex).toEqual(expectedHex);
 
     // Test decoding
-    console.log('Decoding results:');
     const decodedData = marshaler.parseStructBinary(action, encodedBinary);
-    console.log('Decoded data:', JSON.stringify(decodedData, (_, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    ));
 
     // Compare the decoded data with the original input
     const originalData = parse(input)
-    console.log('Original data:', JSON.stringify(originalData, (_, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    ));
 
     const compareObjects = (obj1: any, obj2: any) => {
       for (const key in obj1) {
-        console.log(`Comparing ${key}:`, obj1[key], obj2[key]);
         if (typeof obj1[key] === 'bigint' || typeof obj2[key] === 'bigint') {
           expect(String(obj1[key])).toEqual(String(obj2[key]));
         } else {
@@ -83,8 +68,6 @@ for (const [testCase, action] of testCases) {
     // Use JSON.stringify for string representation comparison
     const stringifiedDecoded = stringify(decodedData);
     const stringifiedOriginal = stringify(originalData);
-    console.log('Stringified decoded:', stringifiedDecoded);
-    console.log('Stringified original:', stringifiedOriginal);
     expect(stringifiedDecoded).toEqual(stringifiedOriginal);
   });
 }
