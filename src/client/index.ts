@@ -81,7 +81,7 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         return this.sendRawTx(signed);
     }
 
-    public async sendRawTx(txBytes: Uint8Array): Promise<void> {
+    private async sendRawTx(txBytes: Uint8Array): Promise<void> {
         const bytesBase64 = base64.encode(txBytes);
         return this.makeCoreAPIRequest<void>('submitTx', { tx: bytesBase64 });
     }
