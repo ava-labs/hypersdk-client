@@ -1,11 +1,11 @@
 import { base64 } from '@scure/base';
 import { SignerIface } from './types';
 import { EphemeralSigner } from './EphemeralSigner';
-import { PrivateKeySigner } from './PrivateKeySigner';
+import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
-import { Marshaler, VMABI } from '../snap/Marshaler';
+import { Marshaler, VMABI } from '../lib/Marshaler';
 import { ED25519_AUTH_ID } from '../snap/const';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
@@ -125,15 +125,14 @@ export abstract class HyperSDKBaseClient extends EventTarget {
 
     public async executeReadonlyAction(action: ActionData) {
         const marshaler = await this.getMarshaler();
-        const actionBytes = marshaler.getActionBinary(action.actionName, JSON.stringify(action.data))
+        const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data))
         const { output: outputBase64 } = await this.makeCoreAPIRequest('executeAction', {
             actionBytes: base64.encode(actionBytes),
             actionId: marshaler.getActionTypeId(action.actionName),
             actor: [ED25519_AUTH_ID, ...this.getSigner().getPublicKey()]
         }) as { output: string }
 
-        const returnType = marshaler.getReturnType(action.actionName)
-        return marshaler.parseStructBinary(returnType, base64.decode(outputBase64))
+        return marshaler.parseTyped(base64.decode(outputBase64))
     }
 
     private marshaler: Marshaler | null = null;

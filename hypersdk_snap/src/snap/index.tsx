@@ -3,8 +3,8 @@ import { Box, Text, Bold, Divider, Heading } from '@metamask/snaps-sdk/jsx';
 import nacl from 'tweetnacl';
 import { base58 } from '@scure/base';
 import { SLIP10Node } from '@metamask/key-tree';
-import { VMABI } from './Marshaler';
-import { PrivateKeySigner } from '../client/PrivateKeySigner';
+import { VMABI } from '../lib/Marshaler';
+import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.

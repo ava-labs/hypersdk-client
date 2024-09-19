@@ -3,7 +3,7 @@ import MetaMaskSDK, { SDKProvider } from "@metamask/sdk";
 import { SignerIface } from "./types";
 import { TransactionPayload } from '../snap';
 import snapPkgJson from "../../package.json";
-import { VMABI } from '../snap/Marshaler';
+import { VMABI } from '../lib/Marshaler';
 
 export const DEFAULT_SNAP_ID = `npm:${snapPkgJson.name}`;
 

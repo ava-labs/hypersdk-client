@@ -1,7 +1,7 @@
 import { TransactionPayload } from "../snap";
-import { SignerIface } from "./types";
+import { SignerIface } from "../client/types";
 import { ed25519 } from "@noble/curves/ed25519";
-import { Marshaler, VMABI } from "../snap/Marshaler";
+import { Marshaler, VMABI } from "./Marshaler";
 import { ED25519_AUTH_ID } from "../snap/const";
 
 export class PrivateKeySigner implements SignerIface {

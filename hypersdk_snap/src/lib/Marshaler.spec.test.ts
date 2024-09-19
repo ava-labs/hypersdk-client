@@ -19,7 +19,7 @@ const testCases: [string, string][] = [
   ["outer", "Outer"],
 ]
 
-const abiJSON = fs.readFileSync(`./src/snap/testdata/abi.json`, 'utf8')
+const abiJSON = fs.readFileSync(`./src/testdata/abi.json`, 'utf8')
 const marshaler = new Marshaler(JSON.parse(abiJSON) as VMABI)
 
 test('ABI hash', () => {
@@ -27,7 +27,7 @@ test('ABI hash', () => {
   const actualHex = bytesToHex(actualHash)
 
   const expectedHex = String(
-    fs.readFileSync(`./src/snap/testdata/abi.hash.hex`, 'utf8')
+    fs.readFileSync(`./src/testdata/abi.hash.hex`, 'utf8')
   ).trim()
 
   expect(actualHex).toBe(expectedHex)
@@ -36,17 +36,17 @@ test('ABI hash', () => {
 for (const [testCase, action] of testCases) {
   test(`${testCase} spec - encode and decode`, () => {
     const expectedHex = String(
-      fs.readFileSync(`./src/snap/testdata/${testCase}.hex`, 'utf8')
+      fs.readFileSync(`./src/testdata/${testCase}.hex`, 'utf8')
     ).trim();
-    const input = fs.readFileSync(`./src/snap/testdata/${testCase}.json`, 'utf8');
+    const input = fs.readFileSync(`./src/testdata/${testCase}.json`, 'utf8');
 
     // Test encoding
-    const encodedBinary = marshaler.getActionBinary(action, input);
+    const encodedBinary = marshaler.encode(action, input);
     const actualHex = bytesToHex(encodedBinary);
     expect(actualHex).toEqual(expectedHex);
 
     // Test decoding
-    const decodedData = marshaler.parseStructBinary(action, encodedBinary);
+    const decodedData = marshaler.parse(action, encodedBinary);
 
     // Compare the decoded data with the original input
     const originalData = parse(input)

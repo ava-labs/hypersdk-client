@@ -2,8 +2,8 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
 import { base64 } from '@scure/base';
-import ABIsABI from './testdata/abi.abi.json'
-import { TransactionPayload } from '.';
+import ABIsABI from '../testdata/abi.abi.json'
+import { TransactionPayload } from '../snap';
 
 export type VMABI = {
     actions: TypedStructABI[]
@@ -33,20 +33,59 @@ export class Marshaler {
         }
     }
 
-    getHash(): Uint8Array {
+    public getHash(): Uint8Array {
         const abiAbiMarshaler = new Marshaler(ABIsABI)
-        const abiBytes = abiAbiMarshaler.getActionBinary("ABI", JSON.stringify(this.abi))
+        const abiBytes = abiAbiMarshaler.encode("ABI", JSON.stringify(this.abi))
         return sha256(abiBytes)
     }
 
-    getActionBinary(actionName: string, dataJSON: string): Uint8Array {
-        //todo: has to throw error of dataJSON has any extra fields
-        const data = parse(dataJSON) as Record<string, unknown>
-
-        return this.encodeField(actionName, data)
+    public encode(typeName: string, dataJSON: string): Uint8Array {
+        const data = parse(dataJSON) as Record<string, unknown>;
+        return this.encodeField(typeName, data);
     }
 
-    parseStructBinary(outputType: string, actionResultBinary: Uint8Array): unknown {
+    public encodeTyped(typeName: string, dataJSON: string): Uint8Array {
+        const data = parse(dataJSON) as Record<string, unknown>
+        const typeABI = this.abi.types.find(type => type.name === typeName)
+
+        if (!typeABI) {
+            throw new Error(`Type ${typeName} not found in ABI`)
+        }
+
+        // Check for extra fields
+        const extraFields = Object.keys(data).filter(key => !typeABI.fields.some(field => field.name === key))
+        if (extraFields.length > 0) {
+            throw new Error(`Extra fields found in data: ${extraFields.join(', ')}`)
+        }
+
+        const typeId = [...this.abi.actions, ...this.abi.outputs].find(typ => typ.name === typeName)?.id
+
+        if (typeId === undefined) {
+            throw new Error(`Type ID not found for ${typeName}`)
+        }
+
+        const encodedData = this.encodeField(typeName, data)
+        return new Uint8Array([typeId, ...encodedData])
+    }
+
+    public parseTyped(binary: Uint8Array): unknown {
+        if (binary.length === 0) {
+            throw new Error('Empty binary data')
+        }
+
+        const typeId = binary[0]
+        const data = binary.slice(1)
+
+        const foundType = [...this.abi.actions, ...this.abi.outputs].find(typ => typ.id === typeId)
+
+        if (!foundType) {
+            throw new Error(`No type found for id ${typeId}`)
+        }
+
+        return this.parse(foundType.name, data)
+    }
+
+    public parse(outputType: string, actionResultBinary: Uint8Array): unknown {
         // Handle primitive types
         if (this.isPrimitiveType(outputType)) {
             const [value, _] = this.decodeField(outputType, actionResultBinary);
@@ -111,7 +150,7 @@ export class Marshaler {
                     return this.decodeArray(type.slice(2), binaryData);
                 } else {
                     // Struct type
-                    const decodedStruct = this.parseStructBinary(type, binaryData);
+                    const decodedStruct = this.parse(type, binaryData);
                     const bytesConsumed = this.getStructByteSize(type, binaryData);
                     return [decodedStruct, bytesConsumed];
                 }
@@ -214,9 +253,7 @@ export class Marshaler {
         return totalSize;
     }
 
-
-
-    encodeTransaction(tx: TransactionPayload): Uint8Array {
+    public encodeTransaction(tx: TransactionPayload): Uint8Array {
         if (tx.timestamp.slice(-3) !== "000") {
             tx.timestamp = String(Math.floor(parseInt(tx.timestamp) / 1000) * 1000)
         }

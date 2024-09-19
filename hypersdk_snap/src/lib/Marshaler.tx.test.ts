@@ -1,11 +1,11 @@
 import { bytesToHex } from '@noble/hashes/utils'
-import { idStringToBigInt } from './cb58'
+import { idStringToBigInt } from '../snap/cb58'
 import { hexToBytes } from '@noble/curves/abstract/utils'
 import { Marshaler, VMABI } from "./Marshaler";
 import fs from 'fs'
 import { describe, expect, it, test } from '@jest/globals';
-import { TransactionPayload } from '.';
-import { PrivateKeySigner } from '../client/PrivateKeySigner';
+import { TransactionPayload } from '../snap';
+import { PrivateKeySigner } from './PrivateKeySigner';
 
 describe.skip('tx', () => {
   it('has to have at least one test', () => {
@@ -23,7 +23,7 @@ test('Empty transaction', () => {
     actions: [],
   }
 
-  const abiJSON = fs.readFileSync(`./src/snap/testdata/abi.abi.json`, 'utf8')
+  const abiJSON = fs.readFileSync(`./src/testdata/abi.abi.json`, 'utf8')
   const marshaler = new Marshaler(JSON.parse(abiJSON) as VMABI)
 
   const txDigest = marshaler.encodeTransaction(tx)
@@ -39,7 +39,7 @@ test('Single action tx sign and marshal', async () => {
   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH");
   const addrString = "001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7";
 
-  const abiJSON = fs.readFileSync(`./src/snap/testdata/abi.json`, 'utf8')
+  const abiJSON = fs.readFileSync(`./src/testdata/abi.json`, 'utf8')
   const marshaler = new Marshaler(JSON.parse(abiJSON) as VMABI)
 
   const actionData = {

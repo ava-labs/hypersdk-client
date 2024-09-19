@@ -1,6 +1,6 @@
 
 import { TransactionPayload } from "src/snap"
-import { VMABI } from "../snap/Marshaler"
+import { VMABI } from "../lib/Marshaler"
 
 export interface SignerIface {
     signTx(txPayload: TransactionPayload, abi: VMABI): Promise<Uint8Array>
