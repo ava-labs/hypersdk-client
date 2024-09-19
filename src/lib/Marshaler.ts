@@ -4,6 +4,9 @@ import { parse } from 'lossless-json'
 import { base64 } from '@scure/base';
 import ABIsABI from '../testdata/abi.abi.json'
 import { TransactionPayload } from '../snap';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+
+const ED25519_AUTH_ID = 0x00
 
 export type VMABI = {
     actions: TypedStructABI[]
@@ -345,7 +348,7 @@ function decodeString(binaryData: Uint8Array): [string, number] {
 
 function decodeAddress(binaryData: Uint8Array): [string, number] {
     const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
-    return [Array.from(addressBytes).map(byte => byte.toString(16).padStart(2, '0')).join(''), 33];
+    return [bytesToHex(addressBytes), 33];
 }
 
 function decodeBytes(binaryData: Uint8Array): [string, number] {
@@ -360,7 +363,15 @@ function encodeAddress(value: string): Uint8Array {
         throw new Error(`Address must be a 66-character hex string without '0x' prefix: ${value}`);
     }
 
-    return new Uint8Array(value.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+    return hexToBytes(value);
+}
+
+export function addressBytesFromPubKey(pubKey: Uint8Array): Uint8Array {
+    return new Uint8Array([ED25519_AUTH_ID, ...pubKey])
+}
+
+export function addressHexFromPubKey(pubKey: Uint8Array): string {
+    return bytesToHex(addressBytesFromPubKey(pubKey))
 }
 
 function encodeNumber(type: string, value: number | string): Uint8Array {
@@ -430,19 +441,3 @@ function encodeString(value: string): Uint8Array {
     const lengthBytes = encodeNumber("uint16", stringBytes.length)
     return new Uint8Array([...lengthBytes, ...stringBytes])
 }
-
-//TODO: consider using this instead of DataView
-// private packUintGeneric(value: bigint, byteLength: number): void {
-//     const buffer = new ArrayBuffer(byteLength);
-//     const view = new DataView(buffer);
-//     for (let i = 0; i < byteLength; i++) {
-//         view.setUint8(byteLength - 1 - i, Number(value & 255n));
-//         value >>= 8n;
-//     }
-//     const newBytes = new Uint8Array(buffer);
-//     this._bytes = new Uint8Array([...this._bytes, ...newBytes]);
-// }
-
-// packUint64(value: bigint): void {
-//     this.packUintGeneric(value, 8);
-// }

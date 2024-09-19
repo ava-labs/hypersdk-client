@@ -5,8 +5,7 @@ import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
-import { Marshaler, VMABI } from '../lib/Marshaler';
-import { ED25519_AUTH_ID } from '../snap/const';
+import { addressBytesFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
 const MAX_TX_FEE_TEMP = 10000000n
@@ -128,7 +127,7 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         const { output: outputBase64 } = await this.makeCoreAPIRequest('executeAction', {
             actionBytes: base64.encode(actionBytes),
             actionId: marshaler.getActionTypeId(action.actionName),
-            actor: [ED25519_AUTH_ID, ...this.getSigner().getPublicKey()]
+            actor: addressBytesFromPubKey(this.getSigner().getPublicKey()),
         }) as { output: string }
 
         return marshaler.parseTyped(base64.decode(outputBase64))
