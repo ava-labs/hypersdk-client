@@ -6,7 +6,7 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
 import { Marshaler, VMABI } from '../snap/Marshaler';
-import { ED25519_AUTH_ID } from '../snap/bech32';
+import { ED25519_AUTH_ID } from '../snap/const';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
 const MAX_TX_FEE_TEMP = 10000000n

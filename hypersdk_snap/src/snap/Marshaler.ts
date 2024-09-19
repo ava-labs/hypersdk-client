@@ -1,20 +1,19 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
-import { parseBech32 } from './bech32';
 import { base64 } from '@scure/base';
 import ABIsABI from './testdata/abi.abi.json'
 import { TransactionPayload } from '.';
 
 export type VMABI = {
-    actions: ActionABI[]
+    actions: TypedStructABI[]
+    outputs: TypedStructABI[]
     types: TypeABI[]
 }
 
-type ActionABI = {
+type TypedStructABI = {
     id: number
-    action: string
-    output?: string
+    name: string
 }
 
 type TypeABI = {
@@ -29,7 +28,7 @@ type ABIField = {
 
 export class Marshaler {
     constructor(private abi: VMABI) {
-        if (!Array.isArray(this.abi?.actions)) {
+        if (!Array.isArray(this.abi?.actions) || !Array.isArray(this.abi?.outputs)) {
             throw new Error('Invalid ABI')
         }
     }
@@ -46,13 +45,6 @@ export class Marshaler {
 
         return this.encodeField(actionName, data)
     }
-
-    getReturnType(actionName: string): string {
-        const actionABI = this.abi.actions.find(action => action.action === actionName)
-        if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
-        return actionABI.output || ''
-    }
-
 
     parseStructBinary(outputType: string, actionResultBinary: Uint8Array): unknown {
         // Handle primitive types
@@ -186,7 +178,7 @@ export class Marshaler {
 
     private decodeAddress(binaryData: Uint8Array): [string, number] {
         const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
-        return [base64.encode(addressBytes), 33];
+        return [Buffer.from(addressBytes).toString('hex'), 33];
     }
 
     private decodeBytes(binaryData: Uint8Array): [string, number] {
@@ -254,7 +246,7 @@ export class Marshaler {
     }
 
     public getActionTypeId(actionName: string): number {
-        const actionABI = this.abi.actions.find(action => action.action === actionName)
+        const actionABI = this.abi.actions.find(action => action.name === actionName)
         if (!actionABI) throw new Error(`No action ABI found: ${actionName}`)
         return actionABI.id
     }
@@ -326,45 +318,12 @@ export class Marshaler {
         return new Uint8Array([...lengthBytes, ...flattenedItems]);
     }
 }
-
 function encodeAddress(value: string): Uint8Array {
-    let decodedCount = 0
-
-    let addrBytes: Uint8Array = new Uint8Array()
-
-    //try as a normal bech32 address
-    try {
-        const [, decodedBytes] = parseBech32(value)
-        addrBytes = decodedBytes
-        decodedCount++
-    } catch (e) {
+    if (!/^[0-9a-fA-F]{66}$/.test(value)) {
+        throw new Error(`Address must be a 66-character hex string without '0x' prefix: ${value}`);
     }
 
-    //try as 33 byte base64 encoded address (golang would marshal as such)
-    if (isValidBase64(value)) {
-        const decoded = base64.decode(value);
-        if (decoded.length === 33) {//doesn't throw
-            addrBytes = decoded;
-            decodedCount++;
-        }
-    }
-
-    if (decodedCount > 1) {
-        throw new Error(`Address must be either bech32 or base64 encoded, could be decoded as both. the result is ambiguous: ${value}`)
-    } else if (decodedCount === 1) {
-        return addrBytes
-    } else {
-        throw new Error(`Address must be either bech32 or base64 encoded, could be decoded as neither: ${value}`)
-    }
-}
-
-function isValidBase64(str: string): boolean {
-    try {
-        const decoded = base64.decode(str);
-        return decoded.length > 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(str);
-    } catch {
-        return false;
-    }
+    return new Uint8Array(value.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
 }
 
 function encodeNumber(type: string, value: number | string): Uint8Array {
