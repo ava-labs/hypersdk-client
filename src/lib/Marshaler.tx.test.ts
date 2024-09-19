@@ -31,7 +31,7 @@ test('Empty transaction', () => {
   expect(
     bytesToHex(txDigest)
   ).toBe(
-    "0000018fcbcdeef0" + "d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d2509024" + "00000002540be4" + "0000"
+    "0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be40000"
   );
 })
 
@@ -59,7 +59,17 @@ test('Single action tx sign and marshal', async () => {
   }
 
   const digest = marshaler.encodeTransaction(tx)
-  expect(Buffer.from(digest).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000101001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f");
+
+  const expectedDigest = "0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be400" +
+    "01" + //how many actions
+    "00" + //action id
+    "1b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7" + //from
+    "00000000000000007b" + //value
+    "000000046d656d6f" //memo
+
+  expect(Buffer.from(digest).toString('hex')).toBe(expectedDigest);
+
+
 
   const privateKeyHex = "323b1d8f4eed5f0da9da93071b034f2dce9d2d22692c172f3cb252a64ddfafd01b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7";
   const privateKey = hexToBytes(privateKeyHex).slice(0, 32)
@@ -68,5 +78,5 @@ test('Single action tx sign and marshal', async () => {
 
   const signedTxBytes = await privateKeySigner.signTx(tx, JSON.parse(abiJSON) as VMABI);
 
-  expect(Buffer.from(signedTxBytes).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be4000101001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7000000000000007b000000046d656d6f001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7d83951950b9202e064db0fe558f19e6cb9a7d48b16236133bd3a8d00fb0fc989d4e78e02de507f02eadc713af51d32fc5881e5a6e2dc28fefcb815150b188c01");
+  expect(Buffer.from(signedTxBytes).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be40001001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa700000000000000007b000000046d656d6f001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa72df1b5e3ea1dcf780b70e3c5f4f00ff3d28505ba26a83d7f60f5b691ec301f7b9ed128f5f5fc6289fcff736ba89b22e2fc15644d0355c778e014177b2a8f200c");
 });

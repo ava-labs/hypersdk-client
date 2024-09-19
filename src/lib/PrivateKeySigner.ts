@@ -15,7 +15,7 @@ export class PrivateKeySigner implements SignerIface {
         const digest = marshaler.encodeTransaction(txPayload);
         const signature = ed25519.sign(digest, this.privateKey);
 
-        const pubKey = ed25519.getPublicKey(this.privateKey);
+        const pubKey = this.getPublicKey()
 
         return new Uint8Array([...digest, ...addressBytesFromPubKey(pubKey), ...signature])
     }
