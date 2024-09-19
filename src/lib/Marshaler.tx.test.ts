@@ -6,6 +6,7 @@ import fs from 'fs'
 import { describe, expect, it, test } from '@jest/globals';
 import { TransactionPayload } from '../snap';
 import { PrivateKeySigner } from './PrivateKeySigner';
+import { ed25519 } from '@noble/curves/ed25519';
 
 describe.skip('tx', () => {
   it('has to have at least one test', () => {
@@ -94,9 +95,17 @@ test('Single action tx sign and marshal', async () => {
   const privateKeyHex = "323b1d8f4eed5f0da9da93071b034f2dce9d2d22692c172f3cb252a64ddfafd01b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7";
   const privateKey = hexToBytes(privateKeyHex).slice(0, 32)
 
+  const pubKey = ed25519.getPublicKey(privateKey)
+  expect(bytesToHex(pubKey)).toBe(("1b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7"))
+
   const privateKeySigner = new PrivateKeySigner(privateKey);
 
   const signedTxBytes = await privateKeySigner.signTx(tx, minimalABI);
 
-  expect(Buffer.from(signedTxBytes).toString('hex')).toBe("0000018fcbcdeef0d36e467c73e2840140cc41b3d72f8a5a7446b2399c39b9c74d4cf077d250902400000002540be40001000102030405060708090a0b0c0d0e0f10111213140000000000000000000000000000000000000003e8000000026869001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7b86baec5fe89f2bb585cb781f694a398107fe760577c750da3e9b381c5f5a3673c4a85c65a0db8d5ed03b4c4fd7f818d99270504e65c0ebf4d73884e0bfce60a");
+  expect(Buffer.from(signedTxBytes).toString('hex')).toBe(
+    expectedDigest +
+    "00" +//auth id
+    "1b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa7" +//pubkey
+    "b86baec5fe89f2bb585cb781f694a398107fe760577c750da3e9b381c5f5a3673c4a85c65a0db8d5ed03b4c4fd7f818d99270504e65c0ebf4d73884e0bfce60a"//signature
+  );
 });
