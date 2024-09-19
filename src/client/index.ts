@@ -33,7 +33,6 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         protected readonly apiHost: string,//for example: http://localhost:9650
         protected readonly vmName: string,//for example: hypervm
         protected readonly vmRPCPrefix: string,//for example: hyperapi
-        protected readonly HRP: string,
         protected readonly decimals: number = 9,
     ) {
         super();

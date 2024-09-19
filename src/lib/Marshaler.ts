@@ -87,7 +87,7 @@ export class Marshaler {
 
     public parse(outputType: string, actionResultBinary: Uint8Array): unknown {
         // Handle primitive types
-        if (this.isPrimitiveType(outputType)) {
+        if (isPrimitiveType(outputType)) {
             const [value, _] = this.decodeField(outputType, actionResultBinary);
             return value;
         }
@@ -113,16 +113,6 @@ export class Marshaler {
         return result;
     }
 
-    // Add this helper method to check if a type is primitive
-    private isPrimitiveType(type: string): boolean {
-        const primitiveTypes = [
-            "uint8", "uint16", "uint32", "uint64", "uint256",
-            "int8", "int16", "int32", "int64",
-            "string", "Address", "[]uint8", "Bytes"
-        ];
-        return primitiveTypes.includes(type) || type.startsWith('[]');
-    }
-
     private decodeField(type: string, binaryData: Uint8Array): [unknown, number] {
         // Decodes field and returns value and the number of bytes consumed.
         switch (type) {
@@ -131,19 +121,19 @@ export class Marshaler {
             case "uint32":
             case "uint64":
             case "uint256":
-                return [this.decodeNumber(type, binaryData), this.getByteSize(type)];
+                return [decodeNumber(type, binaryData), getByteSize(type)];
             case "string":
-                return this.decodeString(binaryData);
+                return decodeString(binaryData);
             case "Address":
-                return this.decodeAddress(binaryData);
+                return decodeAddress(binaryData);
             case "[]uint8":
             case "Bytes":
-                return this.decodeBytes(binaryData);
+                return decodeBytes(binaryData);
             case "int8":
             case "int16":
             case "int32":
             case "int64":
-                return [this.decodeNumber(type, binaryData), this.getByteSize(type)];
+                return [decodeNumber(type, binaryData), getByteSize(type)];
             default:
                 // Handle arrays and structs
                 if (type.startsWith('[]')) {
@@ -157,78 +147,8 @@ export class Marshaler {
         }
     }
 
-    private decodeNumber(type: string, binaryData: Uint8Array): bigint | number {
-        const dataView = new DataView(binaryData.buffer, binaryData.byteOffset, binaryData.byteLength);
-        let result: bigint | number;
-
-        switch (type) {
-            case "uint8":
-                result = dataView.getUint8(0);
-                break;
-            case "uint16":
-                result = dataView.getUint16(0, false);
-                break;
-            case "uint32":
-                result = dataView.getUint32(0, false);
-                break;
-            case "uint64":
-                result = dataView.getBigUint64(0, false);
-                break;
-            case "int8":
-                result = dataView.getInt8(0);
-                break;
-            case "int16":
-                result = dataView.getInt16(0, false);
-                break;
-            case "int32":
-                result = dataView.getInt32(0, false);
-                break;
-            case "int64":
-                result = dataView.getBigInt64(0, false);
-                break;
-            default:
-                throw new Error(`Unsupported number type: ${type}`);
-        }
-
-        return result;
-    }
-
-    private getByteSize(type: string): number {
-        switch (type) {
-            case "uint8": return 1;
-            case "uint16": return 2;
-            case "uint32": return 4;
-            case "uint64": return 8;
-            case "uint256": return 32;
-            case "int8": return 1;
-            case "int16": return 2;
-            case "int32": return 4;
-            case "int64": return 8;
-            default: throw new Error(`Unknown type for byte size: ${type}`);
-        }
-    }
-
-    private decodeString(binaryData: Uint8Array): [string, number] {
-        const length = this.decodeNumber("uint16", binaryData) as number;
-        const textDecoder = new TextDecoder();
-        const stringBytes = binaryData.subarray(2, 2 + length); // Skip the length bytes
-        return [textDecoder.decode(stringBytes), 2 + length];
-    }
-
-    private decodeAddress(binaryData: Uint8Array): [string, number] {
-        const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
-        return [Buffer.from(addressBytes).toString('hex'), 33];
-    }
-
-    private decodeBytes(binaryData: Uint8Array): [string, number] {
-        const length = this.decodeNumber("uint32", binaryData) as number;
-        const byteArray = binaryData.subarray(4, 4 + length); // Skip the length bytes
-        const base64String = base64.encode(byteArray);
-        return [base64String, 4 + length];
-    }
-
     private decodeArray(type: string, binaryData: Uint8Array): [unknown[], number] {
-        const length = this.decodeNumber("uint32", binaryData) as number;
+        const length = decodeNumber("uint32", binaryData) as number;
         let offset = 4; // Skip the length bytes
         let resultArray = [];
         for (let i = 0; i < length; i++) {
@@ -355,6 +275,86 @@ export class Marshaler {
         return new Uint8Array([...lengthBytes, ...flattenedItems]);
     }
 }
+
+function isPrimitiveType(type: string): boolean {
+    const primitiveTypes = [
+        "uint8", "uint16", "uint32", "uint64", "uint256",
+        "int8", "int16", "int32", "int64",
+        "string", "Address", "[]uint8", "Bytes"
+    ];
+    return primitiveTypes.includes(type) || type.startsWith('[]');
+}
+
+function decodeNumber(type: string, binaryData: Uint8Array): bigint | number {
+    const dataView = new DataView(binaryData.buffer, binaryData.byteOffset, binaryData.byteLength);
+    let result: bigint | number;
+
+    switch (type) {
+        case "uint8":
+            result = dataView.getUint8(0);
+            break;
+        case "uint16":
+            result = dataView.getUint16(0, false);
+            break;
+        case "uint32":
+            result = dataView.getUint32(0, false);
+            break;
+        case "uint64":
+            result = dataView.getBigUint64(0, false);
+            break;
+        case "int8":
+            result = dataView.getInt8(0);
+            break;
+        case "int16":
+            result = dataView.getInt16(0, false);
+            break;
+        case "int32":
+            result = dataView.getInt32(0, false);
+            break;
+        case "int64":
+            result = dataView.getBigInt64(0, false);
+            break;
+        default:
+            throw new Error(`Unsupported number type: ${type}`);
+    }
+
+    return result;
+}
+
+function getByteSize(type: string): number {
+    switch (type) {
+        case "uint8": return 1;
+        case "uint16": return 2;
+        case "uint32": return 4;
+        case "uint64": return 8;
+        case "uint256": return 32;
+        case "int8": return 1;
+        case "int16": return 2;
+        case "int32": return 4;
+        case "int64": return 8;
+        default: throw new Error(`Unknown type for byte size: ${type}`);
+    }
+}
+
+function decodeString(binaryData: Uint8Array): [string, number] {
+    const length = decodeNumber("uint16", binaryData) as number;
+    const textDecoder = new TextDecoder();
+    const stringBytes = binaryData.subarray(2, 2 + length); // Skip the length bytes
+    return [textDecoder.decode(stringBytes), 2 + length];
+}
+
+function decodeAddress(binaryData: Uint8Array): [string, number] {
+    const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
+    return [Array.from(addressBytes).map(byte => byte.toString(16).padStart(2, '0')).join(''), 33];
+}
+
+function decodeBytes(binaryData: Uint8Array): [string, number] {
+    const length = decodeNumber("uint32", binaryData) as number;
+    const byteArray = binaryData.subarray(4, 4 + length); // Skip the length bytes
+    const base64String = base64.encode(byteArray);
+    return [base64String, 4 + length];
+}
+
 function encodeAddress(value: string): Uint8Array {
     if (!/^[0-9a-fA-F]{66}$/.test(value)) {
         throw new Error(`Address must be a 66-character hex string without '0x' prefix: ${value}`);
