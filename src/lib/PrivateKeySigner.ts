@@ -1,7 +1,8 @@
 import { TransactionPayload } from "../snap";
 import { SignerIface } from "../client/types";
 import { ed25519 } from "@noble/curves/ed25519";
-import { Marshaler, VMABI, addressBytesFromPubKey } from "./Marshaler";
+import { ED25519_AUTH_ID, Marshaler, VMABI, addressBytesFromPubKey } from "./Marshaler";
+import { bytesToHex } from "@noble/curves/abstract/utils";
 
 export class PrivateKeySigner implements SignerIface {
     constructor(private privateKey: Uint8Array) {
@@ -17,7 +18,7 @@ export class PrivateKeySigner implements SignerIface {
 
         const pubKey = this.getPublicKey()
 
-        return new Uint8Array([...digest, ...addressBytesFromPubKey(pubKey), ...signature])
+        return new Uint8Array([...digest, ED25519_AUTH_ID, ...pubKey, ...signature])
     }
 
     getPublicKey(): Uint8Array {
@@ -26,5 +27,10 @@ export class PrivateKeySigner implements SignerIface {
 
     async connect(): Promise<void> {
         // No-op
+    }
+
+    public static debugExtractPublicKey(signed: Uint8Array): Uint8Array {
+        const pubKey = signed.slice(-1 * (64 + 32)).slice(0, 32)
+        return pubKey
     }
 }

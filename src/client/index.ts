@@ -124,12 +124,18 @@ export abstract class HyperSDKBaseClient extends EventTarget {
     public async executeReadonlyAction(action: ActionData) {
         const marshaler = await this.getMarshaler();
         const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data))
-        const { output: outputBase64 } = await this.makeCoreAPIRequest('execute', {
+        const { output, error } = await this.makeCoreAPIRequest('execute', {
             action: base64.encode(actionBytes),
             actor: addressHexFromPubKey(this.getSigner().getPublicKey()),
-        }) as { output: string }
+        }) as { output?: string, error?: string }
 
-        return marshaler.parseTyped(base64.decode(outputBase64))
+        if (error) {
+            throw new Error(error);
+        } else if (output) {
+            return marshaler.parseTyped(base64.decode(output))
+        } else {
+            throw new Error("No output or error returned from execute");
+        }
     }
 
     private marshaler: Marshaler | null = null;

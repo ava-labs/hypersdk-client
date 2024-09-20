@@ -6,7 +6,7 @@ import ABIsABI from '../testdata/abi.abi.json'
 import { TransactionPayload } from '../snap';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
-const ED25519_AUTH_ID = 0x00
+export const ED25519_AUTH_ID = 0x00
 
 export type VMABI = {
     actions: TypedStructABI[]
@@ -367,7 +367,7 @@ function encodeAddress(value: string): Uint8Array {
 }
 
 export function addressBytesFromPubKey(pubKey: Uint8Array): Uint8Array {
-    return new Uint8Array([ED25519_AUTH_ID, ...pubKey])
+    return new Uint8Array([ED25519_AUTH_ID, ...sha256(pubKey)])
 }
 
 export function addressHexFromPubKey(pubKey: Uint8Array): string {
