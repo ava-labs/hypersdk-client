@@ -1,6 +1,6 @@
 {
   "name": "hypersdk-client",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "The 'Hello, world!' of MetaMask Snaps, now written in TypeScript.",
   "repository": {
     "type": "git",
