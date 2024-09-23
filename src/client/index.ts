@@ -132,7 +132,11 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         if (error) {
             throw new Error(error);
         } else if (output) {
-            return marshaler.parseTyped(base64.decode(output))
+            try {
+                return marshaler.parseTyped(base64.decode(output), "output")
+            } catch (error) {
+                throw new Error(`While unmarshaling response: ${error}`)
+            }
         } else {
             throw new Error("No output or error returned from execute");
         }

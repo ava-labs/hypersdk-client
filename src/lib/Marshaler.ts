@@ -70,8 +70,7 @@ export class Marshaler {
         const encodedData = this.encodeField(typeName, data)
         return new Uint8Array([typeId, ...encodedData])
     }
-
-    public parseTyped(binary: Uint8Array): unknown {
+    public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): unknown {
         if (binary.length === 0) {
             throw new Error('Empty binary data')
         }
@@ -79,10 +78,11 @@ export class Marshaler {
         const typeId = binary[0]
         const data = binary.slice(1)
 
-        const foundType = [...this.abi.actions, ...this.abi.outputs].find(typ => typ.id === typeId)
+        const typeList = typeCategory === 'action' ? this.abi.actions : this.abi.outputs
+        const foundType = typeList.find(typ => typ.id === typeId)
 
         if (!foundType) {
-            throw new Error(`No type found for id ${typeId}`)
+            throw new Error(`No ${typeCategory} found for id ${typeId}`)
         }
 
         return this.parse(foundType.name, data)
