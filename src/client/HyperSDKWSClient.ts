@@ -88,9 +88,19 @@ export class HyperSDKWSClient {
         this.batchMessages = [];
     }
 
+    private recentTxIds: string[] = []
     public async registerTx(txBytes: Uint8Array): Promise<any> {
         const txId = base64.encode(sha256(txBytes));
         console.log('Expect transaction ID', txId);
+
+        if (this.recentTxIds.includes(txId)) {
+            throw new Error('Transaction ID already received, skipping')
+        }
+        this.recentTxIds.push(txId)
+        if (this.recentTxIds.length > 100) {
+            this.recentTxIds.shift()
+        }
+
         const msg = Uint8Array.from([TX_BYTE_ONE, ...txBytes]);
         return this.queueMessage(msg, txId);
     }
