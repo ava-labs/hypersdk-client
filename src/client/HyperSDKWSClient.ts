@@ -1,5 +1,7 @@
+import { base64 } from "@scure/base";
 import { decodeBatchMessage, encodeBatchMessage } from "../lib/BatchEncoder";
 import { unpackTxMessage } from "../lib/WsMarshaler";
+import { sha256 } from '@noble/hashes/sha256';
 
 const BLOCK_BYTE_ZERO = 0x00;
 const TX_BYTE_ONE = 0x01;
@@ -7,6 +9,7 @@ const TX_BYTE_ONE = 0x01;
 export class HyperSDKWSClient {
     private ws: WebSocket | null = null;
     private batchMessages: Uint8Array[] = [];
+    private txMessageResolvers: Map<string, (value: any) => void> = new Map();
 
     constructor(
         private readonly apiHost: string,
@@ -27,7 +30,6 @@ export class HyperSDKWSClient {
 
         this.ws.onopen = () => {
             console.log('WebSocket connected');
-
             this.sendBatchMessages(); // Send any queued messages upon connection
         };
 
@@ -52,8 +54,13 @@ export class HyperSDKWSClient {
                     if (firstByte === BLOCK_BYTE_ZERO) {
                         console.log('Received block message, but parsing is not implemented yet')
                     } else if (firstByte === TX_BYTE_ONE) {
-                        const txMessage = unpackTxMessage(msg.slice(1));
-                        console.log('Received transaction message:', txMessage);
+                        const unpacked = unpackTxMessage(msg.slice(1));
+                        console.log('Received transaction message:', unpacked.txId);
+                        const resolver = this.txMessageResolvers.get(unpacked.txId);
+                        if (resolver) {
+                            resolver(unpacked);
+                            this.txMessageResolvers.delete(unpacked.txId);
+                        }
                     } else {
                         console.log('Received unknown message type:', firstByte)
                     }
@@ -64,8 +71,11 @@ export class HyperSDKWSClient {
         };
     }
 
-    private async queueMessage(message: Uint8Array): Promise<void> {
+    private async queueMessage(message: Uint8Array, txId: string): Promise<void> {
         this.batchMessages.push(message);
+        return new Promise((resolve) => {
+            this.txMessageResolvers.set(txId, resolve);
+        });
     }
 
     private sendBatchMessages(): void {
@@ -78,8 +88,10 @@ export class HyperSDKWSClient {
         this.batchMessages = [];
     }
 
-    public async registerTx(tx: Uint8Array): Promise<void> {
-        const msg = Uint8Array.from([0x01, ...tx])
-        await this.queueMessage(msg);
+    public async registerTx(txBytes: Uint8Array): Promise<any> {
+        const txId = base64.encode(sha256(txBytes));
+        console.log('Expect transaction ID', txId);
+        const msg = Uint8Array.from([TX_BYTE_ONE, ...txBytes]);
+        return this.queueMessage(msg, txId);
     }
 }

@@ -2,7 +2,7 @@ import { base64 } from "@scure/base"
 import { Marshaler } from "./Marshaler"
 
 
-type chainResult = {
+type TransactionResult = {
     success: boolean
     error: string
     outputs: Uint8Array[]
@@ -51,9 +51,9 @@ const wsMarshaler = new Marshaler({
     ],
 })
 
-export function unmarshalResult(data: Uint8Array): chainResult {
+export function unmarshalResult(data: Uint8Array): TransactionResult {
     let offset = 0
-    const result: chainResult = { success: false, error: "", outputs: [], feeDimensions: { bandwidth: 0n, compute: 0n, storageRead: 0n, storageAllocate: 0n, storageWrite: 0n }, fee: 0n }
+    const result: TransactionResult = { success: false, error: "", outputs: [], feeDimensions: { bandwidth: 0n, compute: 0n, storageRead: 0n, storageAllocate: 0n, storageWrite: 0n }, fee: 0n }
     //check if the tx succeeded
     result.success = Boolean(data[offset]);
     offset += 1;
@@ -100,13 +100,17 @@ export function unmarshalResult(data: Uint8Array): chainResult {
     return result
 }
 
-type TxMessage = {
+type TxMessage = TxErrorMessage | TxResultMessage
+
+type TxErrorMessage = {
     txId: string;
-} & ({
-    result: chainResult;
-} | {
     error: string;
-});
+}
+
+type TxResultMessage = {
+    txId: string;
+    result: TransactionResult;
+}
 
 export function unpackTxMessage(data: Uint8Array): TxMessage {
     //first 32 bytes is the txID
