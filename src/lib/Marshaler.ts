@@ -70,6 +70,7 @@ export class Marshaler {
         const encodedData = this.encodeField(typeName, data)
         return new Uint8Array([typeId, ...encodedData])
     }
+
     public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): unknown {
         if (binary.length === 0) {
             throw new Error('Empty binary data')
@@ -119,6 +120,8 @@ export class Marshaler {
     private decodeField(type: string, binaryData: Uint8Array): [unknown, number] {
         // Decodes field and returns value and the number of bytes consumed.
         switch (type) {
+            case "[]uint8":
+                return decodeBytes(binaryData)
             case "uint8":
             case "uint16":
             case "uint32":
@@ -129,9 +132,6 @@ export class Marshaler {
                 return decodeString(binaryData);
             case "Address":
                 return decodeAddress(binaryData);
-            case "[]uint8":
-            case "Bytes":
-                return decodeBytes(binaryData);
             case "int8":
             case "int16":
             case "int32":
@@ -140,7 +140,17 @@ export class Marshaler {
             default:
                 // Handle arrays and structs
                 if (type.startsWith('[]')) {
-                    return this.decodeArray(type.slice(2), binaryData);
+                    return this.decodeSlice(type.slice(2), binaryData);
+                } else if (type.startsWith('[')) {
+                    //parse [length]type
+                    const match = type.match(/^\[(\d+)\](.+)$/);
+                    if (match && match[1] && match[2]) {
+                        const length = parseInt(match[1], 10);
+                        const elementType = match[2];
+                        return this.decodeArray(elementType, binaryData, length);
+                    } else {
+                        throw new Error(`Unsupported type: ${type}`);
+                    }
                 } else {
                     // Struct type
                     const decodedStruct = this.parse(type, binaryData);
@@ -150,9 +160,14 @@ export class Marshaler {
         }
     }
 
-    private decodeArray(type: string, binaryData: Uint8Array): [unknown[], number] {
+    private decodeSlice(type: string, binaryData: Uint8Array): [unknown[], number] {
         const length = decodeNumber("uint32", binaryData) as number;
-        let offset = 4; // Skip the length bytes
+        const [resultArray, offset] = this.decodeArray(type, binaryData.subarray(4), length);
+        return [resultArray, offset + 4]
+    }
+
+    private decodeArray(type: string, binaryData: Uint8Array, length: number): [unknown[], number] {
+        let offset = 0;
         let resultArray = [];
         for (let i = 0; i < length; i++) {
             const [decodedValue, bytesConsumed] = this.decodeField(type, binaryData.subarray(offset));
@@ -216,13 +231,23 @@ export class Marshaler {
             return encodeAddress(value)
         }
 
-        if ((type === '[]uint8' || type === 'Bytes') && typeof value === 'string') {
+        if ((type === '[]uint8') && typeof value === 'string') {
             const byteArray = Array.from(atob(value), char => char.charCodeAt(0)) as number[]
             return new Uint8Array([...encodeNumber("uint32", byteArray.length), ...byteArray])
         }
 
         if (type.startsWith('[]')) {
-            return this.encodeArray(type.slice(2), value as unknown[]);
+            return this.encodeSlice(type.slice(2), value as unknown[]);
+        } else if (type.startsWith('[')) {
+            //parse [length]type
+            const match = type.match(/^\[(\d+)\](.+)$/);
+            if (match && match[1] && match[2]) {
+                const length = parseInt(match[1], 10);
+                const elementType = match[2];
+                return this.encodeArray(elementType, value as unknown[], length);
+            } else {
+                throw new Error(`Unsupported type: ${type}`);
+            }
         }
 
         switch (type) {
@@ -259,12 +284,18 @@ export class Marshaler {
         }
     }
 
-    private encodeArray(type: string, value: unknown[]): Uint8Array {
+    private encodeSlice(type: string, value: unknown[]): Uint8Array {
         if (!Array.isArray(value)) {
             throw new Error(`Error in encodeArray: Expected an array for type ${type}, but received ${typeof value} of declared type ${type}`)
         }
-
         const lengthBytes = encodeNumber("uint32", value.length);
+        return new Uint8Array([...lengthBytes, ...this.encodeArray(type, value, value.length)]);
+    }
+
+    private encodeArray(type: string, value: unknown[], expectedLength: number): Uint8Array {
+        if (value.length !== expectedLength) {
+            throw new Error(`Error in encodeArray: Expected an array of length ${expectedLength} for type ${type}, but received an array of length ${value.length}`)
+        }
         const encodedItems = value.map(item => this.encodeField(type, item));
         const flattenedItems = encodedItems.reduce((acc, item) => {
             if (item instanceof Uint8Array) {
@@ -275,7 +306,7 @@ export class Marshaler {
                 throw new Error(`Unexpected item type in encoded array: ${typeof item}`);
             }
         }, [] as number[]);
-        return new Uint8Array([...lengthBytes, ...flattenedItems]);
+        return new Uint8Array(flattenedItems)
     }
 }
 
@@ -283,12 +314,12 @@ function isPrimitiveType(type: string): boolean {
     const primitiveTypes = [
         "uint8", "uint16", "uint32", "uint64", "uint256",
         "int8", "int16", "int32", "int64",
-        "string", "Address", "[]uint8", "Bytes"
+        "string", "Address", "[]uint8"
     ];
     return primitiveTypes.includes(type) || type.startsWith('[]');
 }
 
-function decodeNumber(type: string, binaryData: Uint8Array): bigint | number {
+export function decodeNumber(type: string, binaryData: Uint8Array): bigint | number {
     const dataView = new DataView(binaryData.buffer, binaryData.byteOffset, binaryData.byteLength);
     let result: bigint | number;
 
@@ -343,7 +374,8 @@ function decodeString(binaryData: Uint8Array): [string, number] {
     const length = decodeNumber("uint16", binaryData) as number;
     const textDecoder = new TextDecoder();
     const stringBytes = binaryData.subarray(2, 2 + length); // Skip the length bytes
-    return [textDecoder.decode(stringBytes), 2 + length];
+    const result: [string, number] = [textDecoder.decode(stringBytes), 2 + length];
+    return result
 }
 
 function decodeAddress(binaryData: Uint8Array): [string, number] {
@@ -374,7 +406,7 @@ export function addressHexFromPubKey(pubKey: Uint8Array): string {
     return bytesToHex(addressBytesFromPubKey(pubKey))
 }
 
-function encodeNumber(type: string, value: number | string): Uint8Array {
+export function encodeNumber(type: string, value: number | string): Uint8Array {
     let bigValue = BigInt(value)
     let buffer: ArrayBuffer
     let dataView: DataView

@@ -8,12 +8,6 @@ import { TransactionPayload } from '../snap';
 import { PrivateKeySigner } from './PrivateKeySigner';
 import { ed25519 } from '@noble/curves/ed25519';
 
-describe.skip('tx', () => {
-  it('has to have at least one test', () => {
-    expect(true).toBe(true)
-  })
-})
-
 test('Empty transaction', () => {
   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH")
 
@@ -58,7 +52,7 @@ const minimalABI = {
         },
         {
           "name": "memo",
-          "type": "Bytes"
+          "type": "[]uint8"
         }
       ]
     },

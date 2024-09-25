@@ -17,6 +17,7 @@ const testCases: [string, string][] = [
   ["strBytesEmpty", "MockObjectStringAndBytes"],
   ["strOnly", "MockObjectStringAndBytes"],
   ["outer", "Outer"],
+  ["fixedBytes", "FixedBytes"],
 ]
 
 const abiJSON = fs.readFileSync(`./src/testdata/abi.json`, 'utf8')
@@ -37,7 +38,7 @@ for (const [testCase, action] of testCases) {
   test(`${testCase} spec - encode and decode`, () => {
     const expectedHex = String(
       fs.readFileSync(`./src/testdata/${testCase}.hex`, 'utf8')
-    ).trim();
+    ).trim().split("\n").map(line => line.split("//")[0]?.trim()).join("")
     const input = fs.readFileSync(`./src/testdata/${testCase}.json`, 'utf8');
 
     // Test encoding
