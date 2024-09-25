@@ -1,5 +1,6 @@
 import { base64 } from "@scure/base"
 import { Marshaler } from "./Marshaler"
+import { bytesToHex } from "@noble/curves/abstract/utils"
 
 
 type TransactionResult = {
@@ -61,11 +62,12 @@ export function unmarshalResult(data: Uint8Array): TransactionResult {
     let bytesConsumed = 0
 
     //unpack tx-level error if there is one
-    let txError: Uint8Array
-    [txError, bytesConsumed] = wsMarshaler.decodeField("[]uint8", data.slice(offset));
+    let txErrorBase64: string
+    [txErrorBase64, bytesConsumed] = wsMarshaler.decodeField("[]uint8", data.slice(offset));
+
     offset += bytesConsumed
-    if (txError.length > 0) {
-        result.error = new TextDecoder().decode(txError);
+    if (txErrorBase64.length > 0) {
+        result.error = new TextDecoder().decode(base64.decode(txErrorBase64));
     }
 
     //unpack number of actions
@@ -117,6 +119,7 @@ export function unpackTxMessage(data: Uint8Array): TxMessage {
     let offset = 0;
     const txId = base64.encode(data.slice(offset, 32));
     offset += 32;
+
 
     const hasError = Boolean(data[offset]);
     offset += 1;
