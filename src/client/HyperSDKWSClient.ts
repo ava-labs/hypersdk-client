@@ -1,7 +1,8 @@
 import { base64 } from "@scure/base";
 import { decodeBatchMessage, encodeBatchMessage } from "../lib/BatchEncoder";
-import { unpackTxMessage } from "../lib/WsMarshaler";
+import { TxMessage, unpackTxMessage } from "../lib/WsMarshaler";
 import { sha256 } from '@noble/hashes/sha256';
+import { Marshaler } from "../lib/Marshaler";
 
 const BLOCK_BYTE_ZERO = 0x00;
 const TX_BYTE_ONE = 0x01;
@@ -71,7 +72,7 @@ export class HyperSDKWSClient {
         };
     }
 
-    private async queueMessage(message: Uint8Array, txId: string): Promise<void> {
+    private async queueMessage<T>(message: Uint8Array, txId: string): Promise<T> {
         this.batchMessages.push(message);
         return new Promise((resolve) => {
             this.txMessageResolvers.set(txId, resolve);
@@ -89,7 +90,7 @@ export class HyperSDKWSClient {
     }
 
     private recentTxIds: string[] = []
-    public async registerTx(txBytes: Uint8Array): Promise<any> {
+    public async registerTx(txBytes: Uint8Array, marshaler: Marshaler): Promise<TxMessage> {
         const txId = base64.encode(sha256(txBytes));
         console.log('Expect transaction ID', txId);
 
@@ -102,6 +103,13 @@ export class HyperSDKWSClient {
         }
 
         const msg = Uint8Array.from([TX_BYTE_ONE, ...txBytes]);
-        return this.queueMessage(msg, txId);
+        const txMessage = await this.queueMessage<TxMessage>(msg, txId);
+
+        if ('result' in txMessage) {
+
+            txMessage.result.outputs = txMessage.result.outputs.map(output => marshaler.parseTyped(base64.decode(output), "output"))
+        }
+
+        return txMessage
     }
 }

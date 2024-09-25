@@ -6,7 +6,7 @@ import { bytesToHex } from "@noble/curves/abstract/utils"
 type TransactionResult = {
     success: boolean
     error: string
-    outputs: Uint8Array[]
+    outputs: any[]
     feeDimensions: FeeDimensions
     fee: bigint
 }
@@ -102,7 +102,7 @@ export function unmarshalResult(data: Uint8Array): TransactionResult {
     return result
 }
 
-type TxMessage = TxErrorMessage | TxResultMessage
+export type TxMessage = TxErrorMessage | TxResultMessage
 
 type TxErrorMessage = {
     txId: string;

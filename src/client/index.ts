@@ -8,6 +8,7 @@ import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { HyperSDKWSClient } from './HyperSDKWSClient';
 import { base64 } from '@scure/base';
+import { TxMessage } from 'src/lib/WsMarshaler';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
 const MAX_TX_FEE_TEMP = 10000000n
@@ -50,12 +51,12 @@ export class HyperSDKClient extends EventTarget {
         }
     }
 
-    public async sendTx(actions: ActionData[]): Promise<void> {
+    public async sendTx(actions: ActionData[]): Promise<TxMessage> {
         const txPayload = await this.generatePayload(actions);
         const abi = await this.getAbi();
         const signer = this.getSigner();
         const signed = await signer.signTx(txPayload, abi);
-        return this.ws.registerTx(signed);
+        return this.ws.registerTx(signed, await this.getMarshaler());
     }
 
     public async connectWallet(params: signerParams): Promise<SignerIface> {
