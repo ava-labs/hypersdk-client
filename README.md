@@ -18,3 +18,10 @@ npm install hypersdk-client
 ## Example Usage
 
 To use the HyperSDK Client, make sure you have the latest version installed. You can refer to the JavaScript examples in the [HyperSDK Starter](https://github.com/ava-labs/hypersdk-starter) repository for more detailed usage. Please note that the API and features are evolving rapidly, and there may be frequent changes. The v1.0 release is expected to stabilize the user experience.
+
+## Changelog
+
+### 0.4.6
+- The HyperSDK client is no longer an abstract class and does not need to be extended
+- Added support for [Go language arrays](https://github.com/ava-labs/hypersdk/pull/1587)
+- Implemented support for WebSockets for transactions (block support is not yet available)

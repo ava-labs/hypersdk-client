@@ -1,5 +1,5 @@
 {
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "An example Snap written in TypeScript.",
   "proposedName": "HyperSDK Snap",
   "repository": {
@@ -7,7 +7,7 @@
     "url": "https://github.com/ava-labs/hypersdk-client.git"
   },
   "source": {
-    "shasum": "H6MU2TJzSH5p1CbytLGt8o10YuAmIxX50DB2yuWEJgA=",
+    "shasum": "mHw+28xXXO0iFhFOezp+U4GMRB/NNVLJHU5IRHsapFU=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
