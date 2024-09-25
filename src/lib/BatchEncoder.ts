@@ -9,6 +9,9 @@ export function decodeBatchMessage(messages: Uint8Array): Uint8Array[] {
         result.push(messages.subarray(offset + 4, offset + 4 + messageLength))
         offset += 4 + messageLength
     }
+    if (offset !== messages.length) {
+        throw new Error("Invalid batch message")
+    }
     return result
 }
 

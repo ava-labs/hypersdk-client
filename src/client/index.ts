@@ -1,4 +1,3 @@
-import { base64 } from '@scure/base';
 import { SignerIface } from './types';
 import { EphemeralSigner } from './EphemeralSigner';
 import { PrivateKeySigner } from '../lib/PrivateKeySigner';
@@ -6,16 +5,12 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
+import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
+import { HyperSDKWSClient } from './HyperSDKWSClient';
+import { base64 } from '@scure/base';
 
 //FIXME: we don't have a fee prediction yet, so we just use a huge number
 const MAX_TX_FEE_TEMP = 10000000n
-
-interface ApiResponse<T> {
-    result: T;
-    error?: {
-        message: string;
-    };
-}
 
 type signerParams = {
     type: "ephemeral"
@@ -27,7 +22,11 @@ type signerParams = {
     snapId?: string,
 }
 
-export abstract class HyperSDKBaseClient extends EventTarget {
+export class HyperSDKClient extends EventTarget {
+    private readonly http: HyperSDKHTTPClient;
+    private readonly ws: HyperSDKWSClient;
+    private signer: SignerIface | null = null;
+
     constructor(
         protected readonly apiHost: string,//for example: http://localhost:9650
         protected readonly vmName: string,//for example: hypervm
@@ -35,15 +34,12 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         protected readonly decimals: number = 9,
     ) {
         super();
-        if (this.vmRPCPrefix.startsWith('/')) {
-            this.vmRPCPrefix = vmRPCPrefix.substring(1);
-        }
+        this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
+        this.ws = new HyperSDKWSClient(apiHost, vmName);
     }
 
-    //public methods
-
     public async generatePayload(actions: ActionData[]): Promise<TransactionPayload> {
-        const chainIdStr = (await this.getNetwork()).chainId
+        const chainIdStr = (await this.http.getNetwork()).chainId
         const chainIdBigNumber = idStringToBigInt(chainIdStr)
 
         return {
@@ -54,38 +50,15 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         }
     }
 
-    private getNetworkCache: { networkId: number, subnetId: string, chainId: string } | null = null;
-    public async getNetwork(): Promise<{ networkId: number, subnetId: string, chainId: string }> {
-        if (!this.getNetworkCache) {
-            this.getNetworkCache = await this.makeCoreAPIRequest<{ networkId: number, subnetId: string, chainId: string }>('network');
-        }
-        return this.getNetworkCache;
-    }
-
-
-    private abiCache: VMABI | null = null;
-    public async getAbi(): Promise<VMABI> {
-        if (!this.abiCache) {
-            this.abiCache = (await this.makeCoreAPIRequest<{ abi: VMABI }>('getABI')).abi
-        }
-        return this.abiCache || {}
-    }
-
     public async sendTx(actions: ActionData[]): Promise<void> {
         const txPayload = await this.generatePayload(actions);
         const abi = await this.getAbi();
         const signer = this.getSigner();
         const signed = await signer.signTx(txPayload, abi);
-        return this.sendRawTx(signed);
+        return this.ws.registerTx(signed);
     }
 
-    private async sendRawTx(txBytes: Uint8Array): Promise<void> {
-        const bytesBase64 = base64.encode(txBytes);
-        return this.makeCoreAPIRequest<void>('submitTx', { tx: bytesBase64 });
-    }
-
-    private signer: SignerIface | null = null;
-    public async connect(params: signerParams): Promise<SignerIface> {
+    public async connectWallet(params: signerParams): Promise<SignerIface> {
         if (params.type === "ephemeral") {
             this.signer = new EphemeralSigner();
         } else if (params.type === "private-key") {
@@ -124,21 +97,15 @@ export abstract class HyperSDKBaseClient extends EventTarget {
     public async executeReadonlyAction(action: ActionData) {
         const marshaler = await this.getMarshaler();
         const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data))
-        const { output, error } = await this.makeCoreAPIRequest('execute', {
-            action: base64.encode(actionBytes),
-            actor: addressHexFromPubKey(this.getSigner().getPublicKey()),
-        }) as { output?: string, error?: string }
+        const output = await this.http.executeReadonlyAction(
+            actionBytes,
+            addressHexFromPubKey(this.getSigner().getPublicKey())
+        );
 
-        if (error) {
-            throw new Error(error);
-        } else if (output) {
-            try {
-                return marshaler.parseTyped(base64.decode(output), "output")
-            } catch (error) {
-                throw new Error(`While unmarshaling response: ${error}`)
-            }
-        } else {
-            throw new Error("No output or error returned from execute");
+        try {
+            return marshaler.parseTyped(base64.decode(output), "output")
+        } catch (error) {
+            throw new Error(`While unmarshaling response: ${error}`)
         }
     }
 
@@ -151,48 +118,17 @@ export abstract class HyperSDKBaseClient extends EventTarget {
         return this.marshaler;
     }
 
-    //protected methods intended to be used by subclasses
-    protected async makeCoreAPIRequest<T>(method: string, params: object = {}): Promise<T> {
-        return this.makeApiRequest("coreapi", `hypersdk.${method}`, params);
+    public async getBalance(address: string): Promise<bigint> {
+        const result = await this.http.makeVmAPIRequest<{ amount: number }>('balance', { address });
+        return BigInt(result.amount)//FIXME: might be some loss of precision here
     }
 
-    protected async makeVmAPIRequest<T>(method: string, params: object = {}): Promise<T> {
-        return this.makeApiRequest(this.vmRPCPrefix, `${this.vmName}.${method}`, params);
-    }
-
-    //private methods
-    private async makeApiRequest<T>(namespace: string, method: string, params: object = {}): Promise<T> {
-        const controller = new AbortController();
-        const TIMEOUT_SEC = 10
-        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_SEC * 1000);
-
-        try {
-            const response = await fetch(`${this.apiHost}/ext/bc/${this.vmName}/${namespace}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method,
-                    params,
-                    id: parseInt(String(Math.random()).slice(2))
-                }),
-                signal: controller.signal
-            });
-
-            const json: ApiResponse<T> = await response.json();
-            if (json?.error?.message) {
-                throw new Error(json.error.message);
-            }
-            return json.result;
-        } catch (error: unknown) {
-            if (error instanceof Error && error.name === 'AbortError') {
-                throw new Error(`Request timed out after ${TIMEOUT_SEC} seconds`);
-            }
-            throw error;
-        } finally {
-            clearTimeout(timeoutId);
+    private abi: VMABI | null = null;
+    public async getAbi(): Promise<VMABI> {
+        if (!this.abi) {
+            const result = await this.http.makeCoreAPIRequest<{ abi: VMABI }>('getABI');
+            this.abi = result.abi;
         }
+        return this.abi;
     }
 }

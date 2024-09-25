@@ -117,37 +117,37 @@ export class Marshaler {
         return result;
     }
 
-    private decodeField(type: string, binaryData: Uint8Array): [unknown, number] {
+    public decodeField<T>(type: string, binaryData: Uint8Array): [T, number] {
         // Decodes field and returns value and the number of bytes consumed.
         switch (type) {
             case "[]uint8":
-                return decodeBytes(binaryData)
+                return decodeBytes(binaryData) as [T, number]
             case "uint8":
             case "uint16":
             case "uint32":
             case "uint64":
             case "uint256":
-                return [decodeNumber(type, binaryData), getByteSize(type)];
+                return [decodeNumber(type, binaryData) as T, getByteSize(type)];
             case "string":
-                return decodeString(binaryData);
+                return decodeString(binaryData) as [T, number]
             case "Address":
-                return decodeAddress(binaryData);
+                return decodeAddress(binaryData) as [T, number]
             case "int8":
             case "int16":
             case "int32":
             case "int64":
-                return [decodeNumber(type, binaryData), getByteSize(type)];
+                return [decodeNumber(type, binaryData) as T, getByteSize(type)];
             default:
                 // Handle arrays and structs
                 if (type.startsWith('[]')) {
-                    return this.decodeSlice(type.slice(2), binaryData);
+                    return this.decodeSlice(type.slice(2), binaryData) as [T, number]
                 } else if (type.startsWith('[')) {
                     //parse [length]type
                     const match = type.match(/^\[(\d+)\](.+)$/);
                     if (match && match[1] && match[2]) {
                         const length = parseInt(match[1], 10);
                         const elementType = match[2];
-                        return this.decodeArray(elementType, binaryData, length);
+                        return this.decodeArray(elementType, binaryData, length) as [T, number]
                     } else {
                         throw new Error(`Unsupported type: ${type}`);
                     }
@@ -155,7 +155,7 @@ export class Marshaler {
                     // Struct type
                     const decodedStruct = this.parse(type, binaryData);
                     const bytesConsumed = this.getStructByteSize(type, binaryData);
-                    return [decodedStruct, bytesConsumed];
+                    return [decodedStruct as T, bytesConsumed];
                 }
         }
     }
