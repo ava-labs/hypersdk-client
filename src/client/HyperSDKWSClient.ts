@@ -1,6 +1,6 @@
 import { base64 } from "@scure/base";
 import { decodeBatchMessage, encodeBatchMessage } from "../lib/BatchEncoder";
-import { TxMessage, unpackTxMessage } from "../lib/WsMarshaler";
+import { TxMessage, unpackBlockMessage, unpackTxMessage } from "../lib/WsMarshaler";
 import { sha256 } from '@noble/hashes/sha256';
 import { Marshaler } from "../lib/Marshaler";
 
@@ -17,6 +17,8 @@ export class HyperSDKWSClient {
         private readonly vmName: string
     ) {
         this.connectWebSocket(); // Initialize connection immediately
+        this.batchMessages.push(new Uint8Array([BLOCK_BYTE_ZERO]));
+        // this.batchMessages.push(new Uint8Array([0x01]));
         setInterval(() => {
             this.sendBatchMessages();
         }, 100);
@@ -51,9 +53,9 @@ export class HyperSDKWSClient {
 
                 for (const msg of msgs) {
                     const firstByte = msg[0];
-                    console.log('firstByte', firstByte)
                     if (firstByte === BLOCK_BYTE_ZERO) {
-                        console.log('Received block message, but parsing is not implemented yet')
+                        const unpacked = unpackBlockMessage(msg.slice(1));
+                        console.log('Received block message:', unpacked)
                     } else if (firstByte === TX_BYTE_ONE) {
                         const unpacked = unpackTxMessage(msg.slice(1));
                         console.log('Received transaction message:', unpacked.txId);
@@ -98,7 +100,7 @@ export class HyperSDKWSClient {
             throw new Error('Transaction ID already received, skipping')
         }
         this.recentTxIds.push(txId)
-        if (this.recentTxIds.length > 100) {
+        if (this.recentTxIds.length > 10) {
             this.recentTxIds.shift()
         }
 

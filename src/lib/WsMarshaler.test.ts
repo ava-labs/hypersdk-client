@@ -56,7 +56,8 @@ func TestUnmarshalResultError(t *testing.T) {
 */
 
 import { expect, describe, it } from '@jest/globals';
-import { unmarshalResult } from './WsMarshaler';
+import { unmarshalBlock, unmarshalResult } from './WsMarshaler';
+import { hexToBytes } from '@noble/hashes/utils';
 
 describe('unmarshalResult', () => {
     it('should correctly unmarshal a sample successful result', () => {
@@ -117,3 +118,12 @@ describe('unmarshalResult', () => {
         });
     });
 });
+
+
+describe("unmarshalBlockMessage", () => {
+    const blockMsg = hexToBytes("add1d36ef009f2bcd1a13aaa3c5856b444dff024af224299690b884a31b9e1eb000001922cd1e5680000000000002d0600000001000001922cd2cae84e8d76ca34b02707426f1f5be17604f0ff4c046f3e9de960bce86182c686dc64000000000000a348010300b19777c054c24a7216ab714d99adbdea1a181f43de6001ba3cd4c8713d328ab9039dd909c6fac1072001b309003837e26150eb2bf3be281c35f3ea3dc861e22dcd00000002540be400001b057de320297c29ad0c1f589ea216869cf1938d88c9fbd70d6748323dbf2fa76183614ccf636a2d3f40f3552c37c9df49414a25debd5477c6fc49860ff9ad1087a670b4154b829fffe68f7d55d4d2f86d8474e07a1bb4aba7def2f94664d50a9def9fdcc92a6be4c0bb51944104728b0e83d2b24c1a6999d6fe82e6f89409be")
+    const block = unmarshalBlock(blockMsg)
+    expect(block).toMatchObject({
+        "hello": "world"
+    })
+})
