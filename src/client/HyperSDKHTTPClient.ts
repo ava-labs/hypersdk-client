@@ -1,6 +1,5 @@
 import { base64 } from '@scure/base';
 
-
 interface ApiResponse<T> {
     result: T;
     error?: {
@@ -8,7 +7,23 @@ interface ApiResponse<T> {
     };
 }
 
+interface NetworkInfo {
+    networkId: number;
+    subnetId: string;
+    chainId: string;
+}
+
+export interface TxStatus {
+    timestamp: number;
+    success: boolean;
+    units: [number, number, number, number, number];
+    fee: number;
+    result: any[];
+}
+
 export class HyperSDKHTTPClient {
+    private getNetworkCache: NetworkInfo | null = null;
+
     constructor(
         private readonly apiHost: string,
         private readonly vmName: string,
@@ -25,6 +40,10 @@ export class HyperSDKHTTPClient {
 
     public async makeVmAPIRequest<T>(method: string, params: object = {}): Promise<T> {
         return this.makeApiRequest(this.vmRPCPrefix, `${this.vmName}.${method}`, params);
+    }
+
+    public async makeIndexerRequest<T>(method: string, params: object = {}): Promise<T> {
+        return this.makeApiRequest("indexer", `indexer.${method}`, params);
     }
 
     private async makeApiRequest<T>(namespace: string, method: string, params: object = {}): Promise<T> {
@@ -62,20 +81,19 @@ export class HyperSDKHTTPClient {
         }
     }
 
-    private getNetworkCache: { networkId: number, subnetId: string, chainId: string } | null = null;
-    public async getNetwork(): Promise<{ networkId: number, subnetId: string, chainId: string }> {
+    public async getNetwork(): Promise<NetworkInfo> {
         if (!this.getNetworkCache) {
-            this.getNetworkCache = await this.makeCoreAPIRequest<{ networkId: number, subnetId: string, chainId: string }>('network');
+            this.getNetworkCache = await this.makeCoreAPIRequest<NetworkInfo>('network');
         }
         return this.getNetworkCache;
     }
 
-    public async sendRawTx(txBytes: Uint8Array): Promise<void> {
+    public async sendRawTx(txBytes: Uint8Array): Promise<{ txId: string }> {
         const bytesBase64 = base64.encode(txBytes);
-        return this.makeCoreAPIRequest<void>('submitTx', { tx: bytesBase64 });
+        return this.makeCoreAPIRequest<{ txId: string }>('submitTx', { tx: bytesBase64 });
     }
 
-    public async executeReadonlyAction(action: Uint8Array, actor: string): Promise<string> {
+    public async simulateAction(action: Uint8Array, actor: string): Promise<string> {
         const { output, error } = await this.makeCoreAPIRequest<{ output?: string, error?: string }>('execute', {
             action: base64.encode(action),
             actor: actor,
@@ -88,5 +106,9 @@ export class HyperSDKHTTPClient {
         } else {
             throw new Error("No output or error returned from execute");
         }
+    }
+
+    public async getTransaction(txId: string): Promise<TxStatus> {
+        return this.makeIndexerRequest<TxStatus>('getTx', { txId });
     }
 }
