@@ -3,7 +3,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
 import { base64 } from '@scure/base';
 import ABIsABI from '../testdata/abi.abi.json'
-import { TransactionPayload } from '../snap';
+import { ActionData, TransactionPayload } from '../snap';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 export const ED25519_AUTH_ID = 0x00
@@ -71,7 +71,7 @@ export class Marshaler {
         return new Uint8Array([typeId, ...encodedData])
     }
 
-    public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): unknown {
+    public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): [unknown, number] {
         if (binary.length === 0) {
             throw new Error('Empty binary data')
         }
@@ -83,17 +83,17 @@ export class Marshaler {
         const foundType = typeList.find(typ => typ.id === typeId)
 
         if (!foundType) {
+            console.log(typeList)
             throw new Error(`No ${typeCategory} found for id ${typeId}`)
         }
 
         return this.parse(foundType.name, data)
     }
 
-    public parse(outputType: string, actionResultBinary: Uint8Array): unknown {
+    public parse(outputType: string, actionResultBinary: Uint8Array): [unknown, number] {
         // Handle primitive types
         if (isPrimitiveType(outputType)) {
-            const [value, _] = this.decodeField(outputType, actionResultBinary);
-            return value;
+            return this.decodeField(outputType, actionResultBinary);
         }
 
         // Handle struct types
@@ -114,7 +114,7 @@ export class Marshaler {
             offset += bytesConsumed;
         }
 
-        return result;
+        return [result, offset];
     }
 
     public decodeField<T>(type: string, binaryData: Uint8Array): [T, number] {
@@ -153,7 +153,7 @@ export class Marshaler {
                     }
                 } else {
                     // Struct type
-                    const decodedStruct = this.parse(type, binaryData);
+                    const [decodedStruct, _] = this.parse(type, binaryData);
                     const bytesConsumed = this.getStructByteSize(type, binaryData);
                     return [decodedStruct as T, bytesConsumed];
                 }
@@ -218,6 +218,41 @@ export class Marshaler {
             ...actionsCountBytes,
             ...actionsBytes,
         ]);
+    }
+
+    public decodeTransaction(tx: Uint8Array): [TransactionPayload, number] {
+        let offset = 0
+        let timestamp: bigint
+        let bytesConsumed: number
+
+        [timestamp, bytesConsumed] = this.decodeField<bigint>("uint64", tx.slice(offset))
+        offset += bytesConsumed
+
+        let chainIdBase64: string
+        [chainIdBase64, bytesConsumed] = this.decodeField<string>("[32]uint8", tx.slice(offset))
+        offset += bytesConsumed
+
+        let maxFee: bigint
+        [maxFee, bytesConsumed] = this.decodeField<bigint>("uint64", tx.slice(offset))
+        offset += bytesConsumed
+
+        let actionsCount: number
+        [actionsCount, bytesConsumed] = this.decodeField<number>("uint8", tx.slice(offset))
+        offset += bytesConsumed
+
+        let actions: ActionData[] = []
+        for (let i = 0; i < actionsCount; i++) {
+            const [action, bytesConsumed] = this.parseTyped(tx.slice(offset), "action")
+            actions.push(action as ActionData)
+            offset += bytesConsumed
+        }
+
+        return [{
+            timestamp: timestamp.toString(),
+            chainId: chainIdBase64,//FIXME: might be a mistake here
+            maxFee: maxFee.toString(),
+            actions
+        }, offset]
     }
 
     public getActionTypeId(actionName: string): number {

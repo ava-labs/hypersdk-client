@@ -14,10 +14,11 @@ export class HyperSDKWSClient {
 
     constructor(
         private readonly apiHost: string,
-        private readonly vmName: string
+        private readonly vmName: string,
+        private readonly marshaler: Marshaler
     ) {
         this.connectWebSocket(); // Initialize connection immediately
-        this.batchMessages.push(new Uint8Array([BLOCK_BYTE_ZERO]));
+        this.batchMessages.push(new Uint8Array([TX_BYTE_ONE]));
         // this.batchMessages.push(new Uint8Array([0x01]));
         setInterval(() => {
             this.sendBatchMessages();
@@ -54,8 +55,9 @@ export class HyperSDKWSClient {
                 for (const msg of msgs) {
                     const firstByte = msg[0];
                     if (firstByte === BLOCK_BYTE_ZERO) {
-                        const unpacked = unpackBlockMessage(msg.slice(1));
-                        console.log('Received block message:', unpacked)
+                        // const unpacked = unpackBlockMessage(msg.slice(1), this.marshaler);
+                        // console.log('Received block message:', unpacked)
+                        console.log('Received block message with length', msg.length)
                     } else if (firstByte === TX_BYTE_ONE) {
                         const unpacked = unpackTxMessage(msg.slice(1));
                         console.log('Received transaction message:', unpacked.txId);
@@ -92,7 +94,7 @@ export class HyperSDKWSClient {
     }
 
     private recentTxIds: string[] = []
-    public async registerTx(txBytes: Uint8Array, marshaler: Marshaler): Promise<TxMessage> {
+    public async registerTx(txBytes: Uint8Array): Promise<TxMessage> {
         const txId = base64.encode(sha256(txBytes));
         console.log('Expect transaction ID', txId);
 
@@ -108,8 +110,10 @@ export class HyperSDKWSClient {
         const txMessage = await this.queueMessage<TxMessage>(msg, txId);
 
         if ('result' in txMessage) {
-
-            txMessage.result.outputs = txMessage.result.outputs.map(output => marshaler.parseTyped(base64.decode(output), "output"))
+            txMessage.result.outputs = txMessage.result.outputs.map(output => {
+                const [parsed, _] = this.marshaler.parseTyped(base64.decode(output), "output")
+                return parsed
+            })
         }
 
         return txMessage

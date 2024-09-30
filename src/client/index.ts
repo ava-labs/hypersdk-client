@@ -25,7 +25,7 @@ type signerParams = {
 
 export class HyperSDKClient extends EventTarget {
     private readonly http: HyperSDKHTTPClient;
-    private readonly ws: HyperSDKWSClient;
+    private ws: HyperSDKWSClient | null = null;
     private signer: SignerIface | null = null;
 
     constructor(
@@ -36,7 +36,14 @@ export class HyperSDKClient extends EventTarget {
     ) {
         super();
         this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
-        this.ws = new HyperSDKWSClient(apiHost, vmName);
+    }
+
+    private async getWSClient(): Promise<HyperSDKWSClient> {
+        const marshaler = await this.getMarshaler();
+        if (!this.ws) {
+            this.ws = new HyperSDKWSClient(this.apiHost, this.vmName, marshaler);
+        }
+        return this.ws;
     }
 
     public async generatePayload(actions: ActionData[]): Promise<TransactionPayload> {
@@ -56,7 +63,7 @@ export class HyperSDKClient extends EventTarget {
         const abi = await this.getAbi();
         const signer = this.getSigner();
         const signed = await signer.signTx(txPayload, abi);
-        return this.ws.registerTx(signed, await this.getMarshaler());
+        return (await this.getWSClient()).registerTx(signed);
     }
 
     public async connectWallet(params: signerParams): Promise<SignerIface> {
@@ -104,7 +111,8 @@ export class HyperSDKClient extends EventTarget {
         );
 
         try {
-            return marshaler.parseTyped(base64.decode(output), "output")
+            const [parsed, _] = marshaler.parseTyped(base64.decode(output), "output")
+            return parsed
         } catch (error) {
             throw new Error(`While unmarshaling response: ${error}`)
         }

@@ -1,6 +1,7 @@
 import { base64 } from "@scure/base"
 import { Marshaler } from "./Marshaler"
 import { bytesToHex } from "@noble/hashes/utils"
+import { TransactionPayload } from "src/snap"
 
 
 type TransactionResult = {
@@ -96,7 +97,7 @@ export function unmarshalResult(data: Uint8Array): TransactionResult {
 
     // Check if there are any remaining bytes
     if (offset < data.length) {
-        throw new Error(`Unexpected extra bytes: ${data.length - offset} bytes remaining after unpacking`);
+        throw new Error(`unmarshalResult: Unexpected extra bytes: ${data.length - offset} bytes remaining after unpacking`);
     }
 
     return result
@@ -125,7 +126,7 @@ export function unpackTxMessage(data: Uint8Array): TxMessage {
     offset += 1;
 
     if (hasError) {
-        const errorString = wsMarshaler.parse("string", data.slice(offset)) as string;
+        const [errorString, _] = wsMarshaler.parse("string", data.slice(offset)) as [string, number];
         return { txId, error: errorString }
     }
 
@@ -135,75 +136,71 @@ export function unpackTxMessage(data: Uint8Array): TxMessage {
 
 
 type BlockMessage = {
-    block: any;
-    resultsMsg: string;
+    block: Block;
     results: TransactionResult[];
     fees: FeeDimensions;
 }
 
-export function unpackBlockMessage(data: Uint8Array): BlockMessage {
+export function unpackBlockMessage(data: Uint8Array, marshaler: Marshaler): BlockMessage {
     //first 32 bytes is the txID
     let bytesConsumed = 0
     let offset = 0;
+
     let blockMsgBase64: string
-    [blockMsgBase64, bytesConsumed] = wsMarshaler.decodeField<string>("[]uint8", data.slice(offset))
+    [blockMsgBase64, bytesConsumed] = marshaler.decodeField<string>("[]uint8", data.slice(offset))
     offset += bytesConsumed
     const blkMsgBytes = base64.decode(blockMsgBase64)
 
-    console.log("blkMsgBytes", bytesToHex(blkMsgBytes))
+    let resultMsgBase64: string
+    [resultMsgBase64, bytesConsumed] = marshaler.decodeField<string>("[]uint8", data.slice(offset))
+    offset += bytesConsumed
+    const resultMsgBytes = base64.decode(resultMsgBase64)
+
+    let fees: FeeDimensions
+    [fees, bytesConsumed] = wsMarshaler.decodeField<FeeDimensions>("FeeDimensions", data.slice(offset))
+    offset += bytesConsumed
+
+    if (offset !== data.length) {
+        console.error(`unpackBlockMessage: Unexpected extra bytes: ${data.length - offset} bytes remaining after unpacking`);
+    }
 
     return {
-        block: null, // TODO: Implement block parsing
-        resultsMsg: "TODO: Implement results message parsing",
-        results: [], // TODO: Implement results parsing
-        fees: { bandwidth: 0n, compute: 0n, storageRead: 0n, storageAllocate: 0n, storageWrite: 0n } // TODO: Implement fees parsing
+        block: unmarshalBlock(blkMsgBytes, marshaler),
+        results: unpackResultsMessage(resultMsgBytes),
+        fees: fees
     }
 }
-/*
-func UnmarshalBlock(raw []byte, parser Parser) (*StatelessBlock, error) {
-    var (
-        p = codec.NewReader(raw, consts.NetworkSizeLimit)
-        b StatelessBlock
-    )
-    b.size = len(raw)
 
-    p.UnpackID(false, &b.Prnt)
-    b.Tmstmp = p.UnpackInt64(false)
-    b.Hght = p.UnpackUint64(false)
+function unpackResultsMessage(data: Uint8Array): TransactionResult[] {
+    let results: TransactionResult[] = []
+    let bytesConsumed = 0
+    let offset = 0;
 
-    // Parse transactions
-    txCount := p.UnpackInt(false) // can produce empty blocks
-    actionRegistry, authRegistry := parser.ActionRegistry(), parser.AuthRegistry()
-    b.Txs = []*Transaction{} // don't preallocate all to avoid DoS
-    b.authCounts = map[uint8]int{}
-    for i := uint32(0); i < txCount; i++ {
-        tx, err := UnmarshalTx(p, actionRegistry, authRegistry)
-        if err != nil {
-            return nil, err
-        }
-        b.Txs = append(b.Txs, tx)
-        b.authCounts[tx.Auth.GetTypeID()]++
+    let numResults: number
+    [numResults, bytesConsumed] = wsMarshaler.decodeField<number>("uint32", data.slice(offset))
+    offset += bytesConsumed
+
+    for (let i = 0; i < numResults; i++) {
+        let result: TransactionResult = unmarshalResult(data.slice(offset))
+        offset += bytesConsumed
+        results.push(result)
     }
 
-    p.UnpackID(false, &b.StateRoot)
-
-    // Ensure no leftover bytes
-    if !p.Empty() {
-        return nil, fmt.Errorf("%w: remaining=%d", ErrInvalidObject, len(raw)-p.Offset())
-    }
-    return &b, p.Err()
+    return results
 }
-    */
+
 type Block = {
     blockId: string
     timestamp: number
     height: number
-} | any
+    transactions: TransactionPayload[]
+}
 
-export function unmarshalBlock(data: Uint8Array): Block {
-    let blockIdBytes: Uint8Array
+export function unmarshalBlock(data: Uint8Array, marshaler: Marshaler): Block {
     let bytesConsumed = 0
     let offset = 0;
+
+    let blockIdBytes: Uint8Array
     [blockIdBytes, bytesConsumed] = wsMarshaler.decodeField<Uint8Array>("[32]uint8", data.slice(offset))
     offset += bytesConsumed
 
@@ -220,10 +217,23 @@ export function unmarshalBlock(data: Uint8Array): Block {
     [txCount, bytesConsumed] = wsMarshaler.decodeField<number>("uint32", data.slice(offset))
     offset += bytesConsumed
 
+    let txs: TransactionPayload[] = []
+    for (let i = 0; i < txCount; i++) {
+        let tx: TransactionPayload
+        [tx, bytesConsumed] = marshaler.decodeTransaction(data.slice(offset))
+        offset += bytesConsumed
+        txs.push(tx)
+    }
+
+
+    if (offset !== data.length) {
+        console.warn(`unmarshalBlock: Unexpected extra bytes: ${data.length - offset} bytes remaining after unpacking`);
+    }
 
     return {
         blockId: base64.encode(new Uint8Array(blockIdBytes)),
         timestamp: Number(timestamp),
-        height: Number(height)
+        height: Number(height),
+        transactions: txs
     }
 }
