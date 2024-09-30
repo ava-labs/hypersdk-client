@@ -21,7 +21,16 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.7
+- Added support for the [new indexer API](https://github.com/ava-labs/hypersdk/pull/1597)
+- Renamed most of the methods. Now they are `simulateAction`, `sendTransaction`, `formatNativeTokens`, `convertToNativeTokens`
+- Removed WebSocket support and replaced it with indexer API
+- Added `getTransaction` method to get the transaction status
+
 ### 0.4.6
 - The HyperSDK client is no longer an abstract class and does not need to be extended
 - Added support for [Go language arrays](https://github.com/ava-labs/hypersdk/pull/1587)
 - Implemented support for WebSockets for transactions (block support is not yet available)
+
+## TODO:
+- Separate the Snap into its own package to make it lighter

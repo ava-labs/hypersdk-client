@@ -47,7 +47,7 @@ for (const [testCase, action] of testCases) {
     expect(actualHex).toEqual(expectedHex);
 
     // Test decoding
-    const decodedData = marshaler.parse(action, encodedBinary);
+    const [decodedData, _] = marshaler.parse(action, encodedBinary);
 
     // Compare the decoded data with the original input
     const originalData = parse(input)
