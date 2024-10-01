@@ -13,12 +13,27 @@ interface NetworkInfo {
     chainId: string;
 }
 
-export interface TxStatus {
+export interface TxAPIResponse {
     timestamp: number;
     success: boolean;
-    units: [number, number, number, number, number];
+    units: string;
     fee: number;
     result: any[];
+}
+
+export interface BlockAPIResponse {
+    block: {
+        block: {
+            timestamp: number;
+            height: number;
+            parentID: string;
+            txs: any[];//FIXME:
+        };
+        results: any[];//FIXME:
+        unitPrices: string
+    };
+
+    blockBytes: string;
 }
 
 export class HyperSDKHTTPClient {
@@ -108,7 +123,47 @@ export class HyperSDKHTTPClient {
         }
     }
 
-    public async getTransaction(txId: string): Promise<TxStatus> {
-        return this.makeIndexerRequest<TxStatus>('getTx', { txId });
+    public async getTransaction(txId: string): Promise<TxAPIResponse> {
+        return this.makeIndexerRequest<TxAPIResponse>('getTx', { txId });
+    }
+
+    public async getBlock(blockID: string): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getBlock', { blockID });
+    }
+
+    public async getBlockByHeight(height: number): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getBlockByHeight', { height });
+    }
+
+    public async getLatestBlock(): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getLatestBlock', {});
+    }
+
+    public listenToBlocks(callback: (block: BlockAPIResponse) => void, includeEmpty: boolean = false, expectedBlockTimeMs: number = 1000): void {
+        let currentHeight: number = -1;
+
+        const fetchNextBlock = async () => {
+            try {
+                const block = currentHeight === -1 ?
+                    await this.getLatestBlock()
+                    : await this.getBlockByHeight(currentHeight + 1);
+
+                currentHeight = block.block.block.height
+
+                if (includeEmpty || block.block.block.txs.length > 0) {
+                    callback(block);
+                }
+
+                fetchNextBlock();
+            } catch (error: any) {
+                if (error?.message?.includes("block not found")) {
+                    setTimeout(fetchNextBlock, expectedBlockTimeMs);
+                } else {
+                    console.error(error);
+                }
+            }
+        };
+
+        fetchNextBlock();
     }
 }

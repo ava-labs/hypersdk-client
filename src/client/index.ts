@@ -1,13 +1,14 @@
-import { SignerIface } from './types';
+import { ActionOutput, SignerIface } from './types';
 import { EphemeralSigner } from './EphemeralSigner';
 import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
-import { HyperSDKHTTPClient, TxStatus } from './HyperSDKHTTPClient';
+import { HyperSDKHTTPClient, TxAPIResponse } from './HyperSDKHTTPClient';
 import { base64 } from '@scure/base';
 import { hexToBytes } from '@noble/hashes/utils';
+import { TransactionStatus, txAPIResponseToTransactionStatus } from './apiTransformers';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 10000000n;
@@ -17,6 +18,8 @@ type SignerType =
     | { type: "private-key", privateKey: Uint8Array }
     | { type: "metamask-snap", snapId?: string };
 
+
+
 export class HyperSDKClient extends EventTarget {
     private readonly http: HyperSDKHTTPClient;
     private signer: SignerIface | null = null;
@@ -24,13 +27,15 @@ export class HyperSDKClient extends EventTarget {
     private marshaler: Marshaler | null = null;
 
     constructor(
-        private readonly apiHost: string,
-        private readonly vmName: string,
-        private readonly vmRPCPrefix: string,
+        apiHost: string,
+        vmName: string,
+        vmRPCPrefix: string,
         private readonly decimals: number = 9
     ) {
         super();
         this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
+
+        this.http.listenToBlocks((block) => console.log("DEBUG BLOCK", block));
     }
 
     // Public methods
@@ -42,7 +47,7 @@ export class HyperSDKClient extends EventTarget {
         return this.signer;
     }
 
-    public async sendTransaction(actions: ActionData[]): Promise<TxStatus> {
+    public async sendTransaction(actions: ActionData[]): Promise<TxAPIResponse> {
         const txPayload = await this.createTransactionPayload(actions);
         const abi = await this.getAbi();
         const signed = await this.getSigner().signTx(txPayload, abi);
@@ -51,7 +56,7 @@ export class HyperSDKClient extends EventTarget {
     }
 
     //actorHex is optional, if not provided, the signer's public key will be used
-    public async simulateAction(action: ActionData, actorHex?: string) {
+    public async simulateAction(action: ActionData, actorHex?: string): Promise<ActionOutput> {
         const marshaler = await this.getMarshaler();
         const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data));
 
@@ -91,13 +96,10 @@ export class HyperSDKClient extends EventTarget {
         return this.abi;
     }
 
-    public async getTransaction(txId: string): Promise<TxStatus> {
-        const txStatus = await this.http.getTransaction(txId);
-        if (txStatus.result.length > 0) {
-            const marshaler = await this.getMarshaler();
-            txStatus.result = txStatus.result.map((result: string) => marshaler.parseTyped(hexToBytes(result), "output")[0]);
-        }
-        return txStatus;
+    public async getTransaction(txId: string): Promise<TransactionStatus> {
+        const response = await this.http.getTransaction(txId);
+        const marshaler = await this.getMarshaler();
+        return txAPIResponseToTransactionStatus(response, marshaler);
     }
 
     // Private methods
@@ -143,7 +145,7 @@ export class HyperSDKClient extends EventTarget {
         };
     }
 
-    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TxStatus> {
+    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TxAPIResponse> {
         const startTime = Date.now();
         let lastError: Error | null = null;
         for (let i = 0; i < 10; i++) {
@@ -159,5 +161,4 @@ export class HyperSDKClient extends EventTarget {
         }
         throw lastError || new Error("Failed to get transaction status");
     }
-
 }
