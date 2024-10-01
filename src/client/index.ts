@@ -1,13 +1,13 @@
-import { SignerIface } from './types';
+import { ActionOutput, SignerIface } from './types';
 import { EphemeralSigner } from './EphemeralSigner';
 import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
-import { HyperSDKHTTPClient, TxStatus } from './HyperSDKHTTPClient';
+import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base64 } from '@scure/base';
-import { hexToBytes } from '@noble/hashes/utils';
+import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, txAPIResponseToTransactionStatus } from './apiTransformers';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 10000000n;
@@ -22,11 +22,13 @@ export class HyperSDKClient extends EventTarget {
     private signer: SignerIface | null = null;
     private abi: VMABI | null = null;
     private marshaler: Marshaler | null = null;
+    private blockSubscribers: Set<(block: ExecutedBlock) => void> = new Set();
+    private isPollingBlocks: boolean = false;
 
     constructor(
-        private readonly apiHost: string,
-        private readonly vmName: string,
-        private readonly vmRPCPrefix: string,
+        apiHost: string,
+        vmName: string,
+        vmRPCPrefix: string,
         private readonly decimals: number = 9
     ) {
         super();
@@ -42,7 +44,7 @@ export class HyperSDKClient extends EventTarget {
         return this.signer;
     }
 
-    public async sendTransaction(actions: ActionData[]): Promise<TxStatus> {
+    public async sendTransaction(actions: ActionData[]): Promise<TransactionStatus> {
         const txPayload = await this.createTransactionPayload(actions);
         const abi = await this.getAbi();
         const signed = await this.getSigner().signTx(txPayload, abi);
@@ -51,7 +53,7 @@ export class HyperSDKClient extends EventTarget {
     }
 
     //actorHex is optional, if not provided, the signer's public key will be used
-    public async simulateAction(action: ActionData, actorHex?: string) {
+    public async simulateAction(action: ActionData, actorHex?: string): Promise<ActionOutput> {
         const marshaler = await this.getMarshaler();
         const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data));
 
@@ -91,16 +93,65 @@ export class HyperSDKClient extends EventTarget {
         return this.abi;
     }
 
-    public async getTransaction(txId: string): Promise<TxStatus> {
-        const txStatus = await this.http.getTransaction(txId);
-        if (txStatus.result.length > 0) {
-            const marshaler = await this.getMarshaler();
-            txStatus.result = txStatus.result.map((result: string) => marshaler.parseTyped(hexToBytes(result), "output")[0]);
+    public async getTransactionStatus(txId: string): Promise<TransactionStatus> {
+        const response = await this.http.getTransactionStatus(txId);
+        const marshaler = await this.getMarshaler();
+        return txAPIResponseToTransactionStatus(response, marshaler);
+    }
+
+    public async listenToBlocks(callback: (block: ExecutedBlock) => void, includeEmpty: boolean = false, pollingRateMs: number = 300): Promise<() => void> {
+        this.blockSubscribers.add(callback);
+
+        if (!this.isPollingBlocks) {
+            this.startPollingBlocks(includeEmpty, pollingRateMs);
         }
-        return txStatus;
+
+        return () => {
+            this.blockSubscribers.delete(callback);
+        };
     }
 
     // Private methods
+
+    private async startPollingBlocks(includeEmpty: boolean, pollingRateMs: number) {
+        this.isPollingBlocks = true;
+        const marshaler = await this.getMarshaler();
+        let currentHeight: number = -1;
+
+        const fetchNextBlock = async () => {
+            if (!this.isPollingBlocks) return;
+
+            try {
+                const block = currentHeight === -1 ?
+                    await this.http.getLatestBlock()
+                    : await this.http.getBlockByHeight(currentHeight + 1);
+
+                currentHeight = block.block.block.height;
+
+                if (includeEmpty || block.block.block.txs.length > 0) {
+                    const executedBlock = blockAPIResponseToExecutedBlock(block, marshaler);
+                    this.blockSubscribers.forEach(callback => {
+                        try {
+                            callback(executedBlock);
+                        } catch (error) {
+                            console.error("Error in block callback", error);
+                        }
+                    });
+                }
+
+                setTimeout(fetchNextBlock, pollingRateMs);
+            } catch (error: any) {
+                if (error?.message?.includes("block not found")) {
+                    setTimeout(fetchNextBlock, pollingRateMs * 2);
+                } else {
+                    console.error(error);
+                    setTimeout(fetchNextBlock, pollingRateMs * 2); // Longer delay on error
+                }
+            }
+        };
+
+        fetchNextBlock();
+    }
 
     private createSigner(params: SignerType): SignerIface {
         switch (params.type) {
@@ -136,14 +187,16 @@ export class HyperSDKClient extends EventTarget {
         const chainIdBigNumber = idStringToBigInt(chainId);
 
         return {
-            timestamp: String(BigInt(Date.now()) + 59n * 1000n),
-            chainId: String(chainIdBigNumber),
-            maxFee: String(DEFAULT_MAX_FEE),
+            base: {
+                timestamp: String(BigInt(Date.now()) + 59n * 1000n),
+                chainId: String(chainIdBigNumber),
+                maxFee: String(DEFAULT_MAX_FEE),
+            },
             actions: actions
         };
     }
 
-    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TxStatus> {
+    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TransactionStatus> {
         const startTime = Date.now();
         let lastError: Error | null = null;
         for (let i = 0; i < 10; i++) {
@@ -151,13 +204,15 @@ export class HyperSDKClient extends EventTarget {
                 throw new Error("Transaction wait timed out");
             }
             try {
-                return await this.getTransaction(txId);
+                return await this.getTransactionStatus(txId);
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
+                if (!(error instanceof Error) || error.message !== "tx not found") {
+                    throw error;
+                }
             }
             await new Promise(resolve => setTimeout(resolve, 100 * i));
         }
         throw lastError || new Error("Failed to get transaction status");
     }
-
 }

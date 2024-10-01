@@ -7,3 +7,6 @@ export interface SignerIface {
     getPublicKey(): Uint8Array
     connect(): Promise<void>
 }
+
+
+export type ActionOutput = any;

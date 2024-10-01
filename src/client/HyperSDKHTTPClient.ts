@@ -1,4 +1,5 @@
 import { base64 } from '@scure/base';
+import { BlockAPIResponse, TxAPIResponse } from './apiTransformers';
 
 interface ApiResponse<T> {
     result: T;
@@ -13,13 +14,6 @@ interface NetworkInfo {
     chainId: string;
 }
 
-export interface TxStatus {
-    timestamp: number;
-    success: boolean;
-    units: [number, number, number, number, number];
-    fee: number;
-    result: any[];
-}
 
 export class HyperSDKHTTPClient {
     private getNetworkCache: NetworkInfo | null = null;
@@ -108,7 +102,19 @@ export class HyperSDKHTTPClient {
         }
     }
 
-    public async getTransaction(txId: string): Promise<TxStatus> {
-        return this.makeIndexerRequest<TxStatus>('getTx', { txId });
+    public async getTransactionStatus(txId: string): Promise<TxAPIResponse> {
+        return this.makeIndexerRequest<TxAPIResponse>('getTx', { txId });
+    }
+
+    public async getBlock(blockID: string): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getBlock', { blockID });
+    }
+
+    public async getBlockByHeight(height: number): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getBlockByHeight', { height });
+    }
+
+    public async getLatestBlock(): Promise<BlockAPIResponse> {
+        return this.makeIndexerRequest<BlockAPIResponse>('getLatestBlock', {});
     }
 }
