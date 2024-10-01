@@ -21,6 +21,11 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.8
+- Updated the indexer API to the [latest iteration](https://github.com/ava-labs/hypersdk/pull/1606)
+- Added support for block subscriptions
+- Note: internal changes require reinstalling the Snap!
+
 ### 0.4.7
 - Added support for the [new indexer API](https://github.com/ava-labs/hypersdk/pull/1597)
 - Renamed most of the methods. Now they are `simulateAction`, `sendTransaction`, `formatNativeTokens`, `convertToNativeTokens`

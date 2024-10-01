@@ -192,13 +192,13 @@ export class Marshaler {
     }
 
     public encodeTransaction(tx: TransactionPayload): Uint8Array {
-        if (tx.timestamp.slice(-3) !== "000") {
-            tx.timestamp = String(Math.floor(parseInt(tx.timestamp) / 1000) * 1000)
+        if (tx.base.timestamp.slice(-3) !== "000") {
+            tx.base.timestamp = String(Math.floor(parseInt(tx.base.timestamp) / 1000) * 1000)
         }
 
-        const timestampBytes = encodeNumber("uint64", tx.timestamp);
-        const chainIdBytes = encodeNumber("uint256", tx.chainId);
-        const maxFeeBytes = encodeNumber("uint64", tx.maxFee);
+        const timestampBytes = encodeNumber("uint64", tx.base.timestamp);
+        const chainIdBytes = encodeNumber("uint256", tx.base.chainId);
+        const maxFeeBytes = encodeNumber("uint64", tx.base.maxFee);
         const actionsCountBytes = encodeNumber("uint8", tx.actions.length);
 
         let actionsBytes = new Uint8Array();
@@ -248,9 +248,11 @@ export class Marshaler {
         }
 
         return [{
-            timestamp: timestamp.toString(),
-            chainId: chainIdBase64,//FIXME: might be a mistake here
-            maxFee: maxFee.toString(),
+            base: {
+                timestamp: timestamp.toString(),
+                chainId: chainIdBase64,//FIXME: might be a mistake here
+                maxFee: maxFee.toString(),
+            },
             actions
         }, offset]
     }
@@ -438,7 +440,7 @@ export function addressBytesFromPubKey(pubKey: Uint8Array): Uint8Array {
 }
 
 export function addressHexFromPubKey(pubKey: Uint8Array): string {
-    return bytesToHex(addressBytesFromPubKey(pubKey))
+    return "0x" + bytesToHex(addressBytesFromPubKey(pubKey))
 }
 
 export function encodeNumber(type: string, value: number | string): Uint8Array {
