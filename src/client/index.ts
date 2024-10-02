@@ -10,7 +10,7 @@ import { base64 } from '@scure/base';
 import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, txAPIResponseToTransactionStatus } from './apiTransformers';
 
 // TODO: Implement fee prediction
-const DEFAULT_MAX_FEE = 10000000n;
+const DEFAULT_MAX_FEE = 1000000n;
 const DECIMALS = 9;
 
 type SignerType =
