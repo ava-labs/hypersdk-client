@@ -11,6 +11,7 @@ import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, txAP
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 10000000n;
+const DECIMALS = 9;
 
 type SignerType =
     | { type: "ephemeral" }
@@ -28,8 +29,7 @@ export class HyperSDKClient extends EventTarget {
     constructor(
         apiHost: string,
         vmName: string,
-        vmRPCPrefix: string,
-        private readonly decimals: number = 9
+        vmRPCPrefix: string
     ) {
         super();
         this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
@@ -74,14 +74,14 @@ export class HyperSDKClient extends EventTarget {
 
     public convertToNativeTokens(formattedBalance: string): bigint {
         const float = parseFloat(formattedBalance);
-        return BigInt(float * 10 ** this.decimals);
+        return BigInt(float * 10 ** DECIMALS);
     }
 
     public formatNativeTokens(balance: bigint): string {
-        const divisor = 10n ** BigInt(this.decimals);
+        const divisor = 10n ** BigInt(DECIMALS);
         const quotient = balance / divisor;
         const remainder = balance % divisor;
-        const paddedRemainder = remainder.toString().padStart(this.decimals, '0');
+        const paddedRemainder = remainder.toString().padStart(DECIMALS, '0');
         return `${quotient}.${paddedRemainder}`;
     }
 
