@@ -13,3 +13,11 @@ export type TransactionBase = {
     chainId: string
     maxFee: string
 }
+
+export type Units = {
+    bandwidth: number
+    compute: number
+    storageRead: number
+    storageAllocate: number
+    storageWrite: number
+}
