@@ -3,10 +3,10 @@ import { hexToBytes } from '@noble/curves/abstract/utils'
 import { Marshaler, VMABI } from "./Marshaler";
 import fs from 'fs'
 import { describe, expect, it, test } from '@jest/globals';
-import { TransactionPayload } from '../snap';
 import { PrivateKeySigner } from './PrivateKeySigner';
 import { ed25519 } from '@noble/curves/ed25519';
 import { idStringToBigInt } from '../client';
+import { TransactionPayload } from './types';
 
 test('Empty transaction', () => {
   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH")

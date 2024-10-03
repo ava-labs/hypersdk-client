@@ -1,9 +1,9 @@
 import { base58 } from '@scure/base';
 import MetaMaskSDK, { SDKProvider } from "@metamask/sdk";
 import { SignerIface } from "./types";
-import { TransactionPayload } from '../snap';
 import snapPkgJson from "../../package.json";
 import { VMABI } from '../lib/Marshaler';
+import { TransactionPayload } from '../lib/types';
 
 export const DEFAULT_SNAP_ID = `npm:${snapPkgJson.name}`;
 

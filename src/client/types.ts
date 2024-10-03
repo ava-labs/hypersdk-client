@@ -1,5 +1,3 @@
-
-import { TransactionPayload } from "../snap"
 import { VMABI } from "../lib/Marshaler"
 
 export interface SignerIface {

@@ -1,9 +1,8 @@
 import { hexToBytes } from "@noble/hashes/utils";
-import { addressBytesFromPubKey, addressHexFromPubKey, Marshaler } from "../lib/Marshaler";
+import { addressHexFromPubKey, Marshaler } from "../lib/Marshaler";
 import { ActionOutput } from "./types";
-import { ActionData, TransactionBase, TransactionPayload } from "../snap";
-import { bytesToHex } from "@noble/curves/abstract/utils";
 import { base64 } from "@scure/base";
+import { ActionData, TransactionBase } from "../lib/types";
 
 
 export interface TxAPIResponse {

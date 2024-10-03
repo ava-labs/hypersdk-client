@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from '@jest/globals';
+import { expect, test } from '@jest/globals';
 import { decodeBatchMessage, encodeBatchMessage } from './BatchEncoder';
 import { bytesToHex } from '@noble/curves/abstract/utils';
 

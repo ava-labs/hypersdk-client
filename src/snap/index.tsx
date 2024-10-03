@@ -5,6 +5,7 @@ import { base58 } from '@scure/base';
 import { SLIP10Node } from '@metamask/key-tree';
 import { VMABI } from '../lib/Marshaler';
 import { PrivateKeySigner } from '../lib/PrivateKeySigner';
+import { TransactionPayload } from 'src/lib/types';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -81,36 +82,3 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     }
 };
 
-export function isValidSegment(segment: string) {
-    if (typeof segment !== 'string') {
-        return false;
-    }
-
-    if (!segment.match(/^[0-9]+'$/)) {
-        return false;
-    }
-
-    const index = segment.slice(0, -1);
-
-    if (parseInt(index).toString() !== index) {
-        return false;
-    }
-
-    return true;
-}
-
-export type ActionData = {
-    actionName: string
-    data: Record<string, unknown>
-}
-
-export type TransactionPayload = {
-    base: TransactionBase,
-    actions: ActionData[]
-}
-
-export type TransactionBase = {
-    timestamp: string
-    chainId: string
-    maxFee: string
-}

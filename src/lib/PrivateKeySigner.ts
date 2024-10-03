@@ -1,8 +1,7 @@
-import { TransactionPayload } from "../snap";
 import { SignerIface } from "../client/types";
 import { ed25519 } from "@noble/curves/ed25519";
-import { ED25519_AUTH_ID, Marshaler, VMABI, addressBytesFromPubKey } from "./Marshaler";
-import { bytesToHex } from "@noble/curves/abstract/utils";
+import { ED25519_AUTH_ID, Marshaler, VMABI } from "./Marshaler";
+import { TransactionPayload } from "./types";
 
 export class PrivateKeySigner implements SignerIface {
     constructor(private privateKey: Uint8Array) {
@@ -34,3 +33,11 @@ export class PrivateKeySigner implements SignerIface {
         return pubKey
     }
 }
+
+
+export class EphemeralSigner extends PrivateKeySigner {
+    constructor() {
+        super(ed25519.utils.randomPrivateKey());
+    }
+}
+
