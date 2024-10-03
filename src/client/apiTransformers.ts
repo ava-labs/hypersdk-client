@@ -5,7 +5,8 @@ import { base64 } from "@scure/base";
 import { ActionData, TransactionBase, Units } from "../lib/types";
 
 
-export interface TxAPIResponse {
+
+export interface TransactionStatus {
     timestamp: number;
     success: boolean;
     units: string;
@@ -14,22 +15,10 @@ export interface TxAPIResponse {
 }
 
 
-export interface TransactionStatus {
-    blockTimestamp: number;
-    success: boolean;
-    fee: number;
-    outputs: ActionOutput[];
-    error: string;
-}
-
-export function txAPIResponseToTransactionStatus(response: TxAPIResponse, marshaler: Marshaler): TransactionStatus {
-    const error = response.success ? "" : "No error message - field Error is not implemented yet in GetTxResponse struct of api/indexer/server.go file";
+export function processTxAPIResponse(response: TransactionStatus, marshaler: Marshaler): TransactionStatus {
     return {
-        blockTimestamp: response.timestamp,
-        success: response.success,
-        fee: response.fee,
-        outputs: response.outputs.map((result: string) => marshaler.parseTyped(hexToBytes(result), "output")[0]),
-        error: error
+        ...response,
+        outputs: response.outputs.map((output: string) => marshaler.parseTyped(base64.decode(output), "output")[0]),
     }
 }
 
@@ -54,13 +43,7 @@ export interface BlockAPIResponse {
             }>;
             stateRoot: string;
         };
-        results: Array<{
-            success: boolean;
-            error: string;
-            outputs: string[];
-            units: string;
-            fee: number;
-        }>;
+        results: TransactionStatus[];
         unitPrices: Units;
     };
     blockBytes: string;
@@ -72,10 +55,9 @@ export interface ExecutedBlock {
     stateRoot: string;
     timestamp: number;
     transactions: {
-        // id: string,
         base: TransactionBase,
         actions: any[],
-        response: TxAPIResponse,
+        response: TransactionStatus,
         sender: string,
     }[];
     units: Units
@@ -90,9 +72,8 @@ export function blockAPIResponseToExecutedBlock(response: BlockAPIResponse, mars
     const transactions: {
         base: TransactionBase,
         actions: ActionData[],
-        response: TxAPIResponse,
+        response: TransactionStatus,
         sender: string,
-        // id: string,
     }[] = [];
 
     for (let i = 0; i < response.block.block.txs.length; i++) {
@@ -103,13 +84,7 @@ export function blockAPIResponseToExecutedBlock(response: BlockAPIResponse, mars
                 maxFee: String(response.block.block.txs[i]!.base.maxFee)
             },
             actions: response.block.block.txs[i]!.actions,
-            response: {
-                timestamp: response.block.block.txs[i]!.base.timestamp,
-                success: response.block.results[i]!.success,
-                units: response.block.results[i]!.units,
-                fee: response.block.results[i]!.fee,
-                outputs: response.block.results[i]!.outputs.map((output) => marshaler.parseTyped(base64.decode(output), "output")[0]),
-            },
+            response: processTxAPIResponse(response.block.results[i]!, marshaler),
             sender: addressHexFromPubKey(Uint8Array.from(response.block.block.txs[i]!.auth.signer))
         })
     }

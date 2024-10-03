@@ -4,7 +4,7 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base58, base64 } from '@scure/base';
-import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, txAPIResponseToTransactionStatus } from './apiTransformers';
+import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, processTxAPIResponse } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from '../lib/types';
 
@@ -95,7 +95,7 @@ export class HyperSDKClient extends EventTarget {
     public async getTransactionStatus(txId: string): Promise<TransactionStatus> {
         const response = await this.http.getTransactionStatus(txId);
         const marshaler = await this.getMarshaler();
-        return txAPIResponseToTransactionStatus(response, marshaler);
+        return processTxAPIResponse(response, marshaler);
     }
 
     public async listenToBlocks(callback: (block: ExecutedBlock) => void, includeEmpty: boolean = false, pollingRateMs: number = 300): Promise<() => void> {
