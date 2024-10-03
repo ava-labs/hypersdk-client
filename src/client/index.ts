@@ -2,12 +2,12 @@ import { ActionOutput, SignerIface } from './types';
 import { EphemeralSigner } from './EphemeralSigner';
 import { PrivateKeySigner } from '../lib/PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
-import { idStringToBigInt } from '../snap/cb58'
 import { ActionData, TransactionPayload } from '../snap';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
-import { base64 } from '@scure/base';
+import { base58, base64 } from '@scure/base';
 import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, txAPIResponseToTransactionStatus } from './apiTransformers';
+import { sha256 } from '@noble/hashes/sha256';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 1000000n;
@@ -215,4 +215,20 @@ export class HyperSDKClient extends EventTarget {
         }
         throw lastError || new Error("Failed to get transaction status");
     }
+}
+
+
+
+const cb58 = {
+    encode(data: Uint8Array): string {
+        return base58.encode(new Uint8Array([...data, ...sha256(data).subarray(-4)]));
+    },
+    decode(string: string): Uint8Array {
+        return base58.decode(string).subarray(0, -4);
+    },
+};
+
+export function idStringToBigInt(id: string): bigint {
+    const bytes = cb58.decode(id);
+    return BigInt(`0x${bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '')}`);
 }

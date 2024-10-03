@@ -1,5 +1,4 @@
 import { bytesToHex } from '@noble/hashes/utils'
-import { idStringToBigInt } from '../snap/cb58'
 import { hexToBytes } from '@noble/curves/abstract/utils'
 import { Marshaler, VMABI } from "./Marshaler";
 import fs from 'fs'
@@ -7,14 +6,17 @@ import { describe, expect, it, test } from '@jest/globals';
 import { TransactionPayload } from '../snap';
 import { PrivateKeySigner } from './PrivateKeySigner';
 import { ed25519 } from '@noble/curves/ed25519';
+import { idStringToBigInt } from '../client';
 
 test('Empty transaction', () => {
   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH")
 
   const tx: TransactionPayload = {
-    timestamp: "1717111222000",
-    chainId: String(chainId),
-    maxFee: String(10n * (10n ** 9n)),
+    base: {
+      timestamp: "1717111222000",
+      chainId: String(chainId),
+      maxFee: String(10n * (10n ** 9n)),
+    },
     actions: [],
   }
 
@@ -75,9 +77,11 @@ test('Single action tx sign and marshal', async () => {
   }
 
   const tx: TransactionPayload = {
-    timestamp: "1717111222000",
-    chainId: String(chainId),
-    maxFee: String(10n * (10n ** 9n)),
+    base: {
+      timestamp: "1717111222000",
+      chainId: String(chainId),
+      maxFee: String(10n * (10n ** 9n)),
+    },
     actions: [actionData],
   }
 
