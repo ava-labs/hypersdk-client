@@ -71,7 +71,7 @@ export class Marshaler {
         return new Uint8Array([typeId, ...encodedData])
     }
 
-    public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): [unknown, number] {
+    public parseTyped(binary: Uint8Array, typeCategory: 'action' | 'output'): [Record<string, unknown>, number] {
         if (binary.length === 0) {
             throw new Error('Empty binary data')
         }
@@ -87,10 +87,10 @@ export class Marshaler {
             throw new Error(`No ${typeCategory} found for id ${typeId}`)
         }
 
-        return this.parse(foundType.name, data)
+        return this.parse(foundType.name, data) as [Record<string, unknown>, number]
     }
 
-    public parse(outputType: string, actionResultBinary: Uint8Array): [unknown, number] {
+    public parse(outputType: string, actionResultBinary: Uint8Array): [Record<string, unknown>, number] {
         // Handle primitive types
         if (isPrimitiveType(outputType)) {
             return this.decodeField(outputType, actionResultBinary);

@@ -4,7 +4,7 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base58, base64 } from '@scure/base';
-import { blockAPIResponseToExecutedBlock, ExecutedBlock, TransactionStatus, processTxAPIResponse } from './apiTransformers';
+import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult, TransactionStatus, TxResult } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from '../lib/types';
 
@@ -22,7 +22,7 @@ export class HyperSDKClient extends EventTarget {
     private signer: SignerIface | null = null;
     private abi: VMABI | null = null;
     private marshaler: Marshaler | null = null;
-    private blockSubscribers: Set<(block: ExecutedBlock) => void> = new Set();
+    private blockSubscribers: Set<(block: Block) => void> = new Set();
     private isPollingBlocks: boolean = false;
 
     constructor(
@@ -43,7 +43,7 @@ export class HyperSDKClient extends EventTarget {
         return this.signer;
     }
 
-    public async sendTransaction(actions: ActionData[]): Promise<TransactionStatus> {
+    public async sendTransaction(actions: ActionData[]): Promise<TxResult> {
         const txPayload = await this.createTransactionPayload(actions);
         const abi = await this.getAbi();
         const signed = await this.getSigner().signTx(txPayload, abi);
@@ -92,13 +92,13 @@ export class HyperSDKClient extends EventTarget {
         return this.abi;
     }
 
-    public async getTransactionStatus(txId: string): Promise<TransactionStatus> {
+    public async getTransactionStatus(txId: string): Promise<TxResult> {
         const response = await this.http.getTransactionStatus(txId);
         const marshaler = await this.getMarshaler();
-        return processTxAPIResponse(response, marshaler);
+        return processAPITxResult(response, marshaler);
     }
 
-    public async listenToBlocks(callback: (block: ExecutedBlock) => void, includeEmpty: boolean = false, pollingRateMs: number = 300): Promise<() => void> {
+    public async listenToBlocks(callback: (block: Block) => void, includeEmpty: boolean = false, pollingRateMs: number = 300): Promise<() => void> {
         this.blockSubscribers.add(callback);
 
         if (!this.isPollingBlocks) {
@@ -128,7 +128,7 @@ export class HyperSDKClient extends EventTarget {
                 currentHeight = block.block.block.height;
 
                 if (includeEmpty || block.block.block.txs.length > 0) {
-                    const executedBlock = blockAPIResponseToExecutedBlock(block, marshaler);
+                    const executedBlock = processAPIBlock(block, marshaler);
                     this.blockSubscribers.forEach(callback => {
                         try {
                             callback(executedBlock);
@@ -195,7 +195,7 @@ export class HyperSDKClient extends EventTarget {
         };
     }
 
-    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TransactionStatus> {
+    private async waitForTransaction(txId: string, timeout: number = 55000): Promise<TxResult> {
         const startTime = Date.now();
         let lastError: Error | null = null;
         for (let i = 0; i < 10; i++) {

@@ -1,5 +1,5 @@
 import { base64 } from '@scure/base';
-import { BlockAPIResponse, TxAPIResponse } from './apiTransformers';
+import { APIBlock, APITxResult } from './apiTransformers';
 
 interface ApiResponse<T> {
     result: T;
@@ -102,19 +102,19 @@ export class HyperSDKHTTPClient {
         }
     }
 
-    public async getTransactionStatus(txId: string): Promise<TxAPIResponse> {
-        return this.makeIndexerRequest<TxAPIResponse>('getTx', { txId });
+    public async getTransactionStatus(txId: string): Promise<APITxResult> {
+        return this.makeIndexerRequest<APITxResult>('getTx', { txId });
     }
 
-    public async getBlock(blockID: string): Promise<BlockAPIResponse> {
-        return this.makeIndexerRequest<BlockAPIResponse>('getBlock', { blockID });
+    public async getBlock(blockID: string): Promise<APIBlock> {
+        return this.makeIndexerRequest<APIBlock>('getBlock', { blockID });
     }
 
-    public async getBlockByHeight(height: number): Promise<BlockAPIResponse> {
-        return this.makeIndexerRequest<BlockAPIResponse>('getBlockByHeight', { height });
+    public async getBlockByHeight(height: number): Promise<APIBlock> {
+        return this.makeIndexerRequest<APIBlock>('getBlockByHeight', { height });
     }
 
-    public async getLatestBlock(): Promise<BlockAPIResponse> {
-        return this.makeIndexerRequest<BlockAPIResponse>('getLatestBlock', {});
+    public async getLatestBlock(): Promise<APIBlock> {
+        return this.makeIndexerRequest<APIBlock>('getLatestBlock', {});
     }
 }
