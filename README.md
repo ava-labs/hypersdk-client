@@ -21,6 +21,9 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.10
+- Support `bool` fields in ABI. [HyperSDK PR](https://github.com/ava-labs/hypersdk/pull/1648)
+
 ### 0.4.9
 - Updated the indexer API to the latest iteration.
 - Simplified indexer transformation in favor of easier support.
