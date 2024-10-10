@@ -42,7 +42,7 @@
         },
         {
             "id": 10,
-            "name": "Bool"
+            "name": "Bools"
         }
     ],
     "outputs": [
@@ -214,15 +214,16 @@
             ]
         },
         {
+            "name": "ActionWithOutput",
             "fields": [
                 {
                     "name": "field1",
                     "type": "uint8"
                 }
-            ],
-            "name": "ActionWithOutput"
+            ]
         },
         {
+            "name": "FixedBytes",
             "fields": [
                 {
                     "name": "twoBytes",
@@ -232,19 +233,10 @@
                     "name": "thirtyTwoBytes",
                     "type": "[32]uint8"
                 }
-            ],
-            "name": "FixedBytes"
+            ]
         },
         {
-            "fields": [
-                {
-                    "name": "field1",
-                    "type": "uint16"
-                }
-            ],
-            "name": "ActionOutput"
-        },
-        {
+            "name": "Bools",
             "fields": [
                 {
                     "name": "bool1",
@@ -253,9 +245,21 @@
                 {
                     "name": "bool2",
                     "type": "bool"
+                },
+                {
+                    "name": "boolArray",
+                    "type": "[]bool"
                 }
-            ],
-            "name": "Bool"
+            ]
+        },
+        {
+            "name": "ActionOutput",
+            "fields": [
+                {
+                    "name": "field1",
+                    "type": "uint16"
+                }
+            ]
         }
     ]
 }
