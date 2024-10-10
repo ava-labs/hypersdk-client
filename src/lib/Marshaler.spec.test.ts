@@ -18,6 +18,7 @@ const testCases: [string, string][] = [
   ["strOnly", "MockObjectStringAndBytes"],
   ["outer", "Outer"],
   ["fixedBytes", "FixedBytes"],
+  ["bools", "Bools"],
 ]
 
 const abiJSON = fs.readFileSync(`./src/testdata/abi.json`, 'utf8')
