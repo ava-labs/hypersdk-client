@@ -120,6 +120,8 @@ export class Marshaler {
     public decodeField<T>(type: string, binaryData: Uint8Array): [T, number] {
         // Decodes field and returns value and the number of bytes consumed.
         switch (type) {
+            case "bool":
+                return decodeBool(binaryData) as [T, number]
             case "[]uint8":
                 return decodeBytes(binaryData) as [T, number]
             case "uint8":
@@ -288,6 +290,8 @@ export class Marshaler {
         }
 
         switch (type) {
+            case "bool":
+                return encodeBool(value as boolean)
             case "uint8":
             case "uint16":
             case "uint32":
@@ -509,4 +513,17 @@ function encodeString(value: string): Uint8Array {
     const stringBytes = encoder.encode(value)
     const lengthBytes = encodeNumber("uint16", stringBytes.length)
     return new Uint8Array([...lengthBytes, ...stringBytes])
+}
+
+function encodeBool(value: boolean): Uint8Array {
+    return new Uint8Array([value ? 1 : 0])
+}
+
+function decodeBool(binaryData: Uint8Array): [boolean, number] {
+    const val = binaryData[0];
+    if (val !== 0 && val !== 1) {
+        throw new Error(`Invalid boolean value: ${val}. Expected 0 or 1.`);
+    }
+    const value = val === 1;
+    return [value, 1];
 }

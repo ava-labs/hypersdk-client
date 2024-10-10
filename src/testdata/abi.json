@@ -39,6 +39,10 @@
         {
             "id": 9,
             "name": "FixedBytes"
+        },
+        {
+            "id": 10,
+            "name": "Bool"
         }
     ],
     "outputs": [
@@ -239,6 +243,19 @@
                 }
             ],
             "name": "ActionOutput"
+        },
+        {
+            "fields": [
+                {
+                    "name": "bool1",
+                    "type": "bool"
+                },
+                {
+                    "name": "bool2",
+                    "type": "bool"
+                }
+            ],
+            "name": "Bool"
         }
     ]
 }
