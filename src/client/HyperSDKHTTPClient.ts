@@ -87,16 +87,16 @@ export class HyperSDKHTTPClient {
         return this.makeCoreAPIRequest<{ txId: string }>('submitTx', { tx: bytesBase64 });
     }
 
-    public async simulateAction(action: Uint8Array, actor: string): Promise<string> {
-        const { output, error } = await this.makeCoreAPIRequest<{ output?: string, error?: string }>('execute', {
-            action: base64.encode(action),
+    public async executeActions(actions: Uint8Array[], actor: string): Promise<string[]> {
+        const { outputs, error } = await this.makeCoreAPIRequest<{ outputs?: string[], error?: string }>('executeActions', {
+            actions: actions.map(action => base64.encode(action)),
             actor: actor,
         });
 
         if (error) {
             throw new Error(error);
-        } else if (output) {
-            return output;
+        } else if (outputs) {
+            return outputs;
         } else {
             throw new Error("No output or error returned from execute");
         }

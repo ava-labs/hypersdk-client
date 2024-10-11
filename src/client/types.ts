@@ -1,3 +1,4 @@
+import { TransactionPayload } from "../lib/types";
 import { VMABI } from "../lib/Marshaler"
 
 export interface SignerIface {
