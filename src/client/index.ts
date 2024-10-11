@@ -52,18 +52,18 @@ export class HyperSDKClient extends EventTarget {
     }
 
     //actorHex is optional, if not provided, the signer's public key will be used
-    public async simulateAction(action: ActionData, actorHex?: string): Promise<ActionOutput> {
+    public async executeActions(actions: ActionData[], actorHex?: string): Promise<ActionOutput[]> {
         const marshaler = await this.getMarshaler();
-        const actionBytes = marshaler.encodeTyped(action.actionName, JSON.stringify(action.data));
+        const actionBytesArray = actions.map(action => marshaler.encodeTyped(action.actionName, JSON.stringify(action.data)));
 
         const actor = actorHex ?? addressHexFromPubKey(this.getSigner().getPublicKey());
 
-        const output = await this.http.simulateAction(
-            actionBytes,
+        const output = await this.http.executeActions(
+            actionBytesArray,
             actor
         );
 
-        return marshaler.parseTyped(base64.decode(output), "output")[0];
+        return output.map(output => marshaler.parseTyped(base64.decode(output), "output")[0]);
     }
 
     public async getBalance(address: string): Promise<bigint> {

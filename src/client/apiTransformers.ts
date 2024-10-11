@@ -112,7 +112,7 @@ export type APIBlock = {
 export type Block = absctractBlock<string, TransactionStatus>
 
 
-//TODO: remove this
+//TODO: remove this after API stabilizes
 const EXAMPLE_BLOCK_API_RESPONSE: APIBlock = {
     "block": {
         "blockID": "k2ZxbWEMpRB4GpMFmntHhU9bD757GSSWHV9gCPk22Q89uo1gv",
