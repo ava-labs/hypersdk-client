@@ -6,12 +6,13 @@
     "type": "git",
     "url": "https://github.com/ava-labs/hypersdk-client.git"
   },
-  "license": "NOT_DECIDED_YET_TODO_FIX",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "./dist/bundle.js",
   "files": [
     "dist/",
     "src/",
-    "snap.manifest.json"
+    "snap.manifest.json",
+    "LICENSE"
   ],
   "scripts": {
     "allow-scripts": "yarn workspace root allow-scripts",
