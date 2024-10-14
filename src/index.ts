@@ -1,12 +1,12 @@
 import { ActionOutput, SignerIface } from './types';
-import { EphemeralSigner, PrivateKeySigner } from '../lib/PrivateKeySigner';
+import { EphemeralSigner, PrivateKeySigner } from './PrivateKeySigner';
 import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
-import { addressHexFromPubKey, Marshaler, VMABI } from '../lib/Marshaler';
+import { addressHexFromPubKey, Marshaler, VMABI } from './Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base58, base64 } from '@scure/base';
 import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult, TransactionStatus, TxResult } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
-import { ActionData, TransactionPayload } from '../lib/types';
+import { ActionData, TransactionPayload } from './types';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 1000000n;

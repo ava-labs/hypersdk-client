@@ -1,4 +1,4 @@
-import { SignerIface } from "../client/types";
+import { SignerIface } from "./types";
 import { ed25519 } from "@noble/curves/ed25519";
 import { ED25519_AUTH_ID, Marshaler, VMABI } from "./Marshaler";
 import { TransactionPayload } from "./types";
