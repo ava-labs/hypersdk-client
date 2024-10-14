@@ -21,6 +21,12 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.13
+- TS to JS compilation
+
+### 0.4.12
+- Move Snap into its own [repo](https://github.com/ava-labs/hypersdk-snap)
+- Move files around, but keep the API the same. You need to update imports
 
 ### 0.4.11
 - Support PR [Simulate a chain of actions #1635](https://github.com/ava-labs/hypersdk/pull/1635)

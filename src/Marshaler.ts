@@ -2,7 +2,7 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
 import { base64 } from '@scure/base';
-import ABIsABI from '../testdata/abi.abi.json'
+import ABIsABI from './testdata/abi.abi.json'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { ActionData, TransactionPayload } from './types';
 

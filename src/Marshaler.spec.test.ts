@@ -1,7 +1,7 @@
 import { bytesToHex } from '@noble/hashes/utils'
 import { Marshaler, VMABI } from "./Marshaler";
 import fs from 'fs';
-import { expect, test } from '@jest/globals';
+import { expect, test } from 'vitest';
 import { isLosslessNumber, parse, stringify } from 'lossless-json';
 
 const testCases: [string, string][] = [
