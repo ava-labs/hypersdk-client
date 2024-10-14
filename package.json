@@ -12,7 +12,6 @@
     "LICENSE"
   ],
   "scripts": {
-    "release": "npm i && npm run build && npm publish",
     "test": "vitest"
   },
   "dependencies": {
