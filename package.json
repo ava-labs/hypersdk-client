@@ -1,18 +1,23 @@
 {
   "name": "hypersdk-client",
-  "version": "0.4.12",
+  "version": "0.4.13",
   "description": "Sample client for HyperSDK",
   "repository": {
     "type": "git",
     "url": "https://github.com/ava-labs/hypersdk-client.git"
   },
   "license": "SEE LICENSE IN LICENSE",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "src/",
-    "LICENSE"
+    "dist",
+    "LICENSE",
+    "src"
   ],
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@metamask/sdk": "^0.29.2",

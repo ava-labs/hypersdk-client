@@ -1,11 +1,10 @@
 import { base58 } from '@scure/base';
 import MetaMaskSDK, { SDKProvider } from "@metamask/sdk";
 import { SignerIface } from "./types";
-import snapPkgJson from "../package.json";
 import { VMABI } from './Marshaler';
 import { TransactionPayload } from './types';
 
-export const DEFAULT_SNAP_ID = `npm:${snapPkgJson.name}`;
+export const DEFAULT_SNAP_ID = `npm:hypersdk-snap`;
 
 type InvokeSnapParams = {
     method: string;
