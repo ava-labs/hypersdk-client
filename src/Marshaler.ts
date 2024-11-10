@@ -419,7 +419,10 @@ function decodeString(binaryData: Uint8Array): [string, number] {
     return result
 }
 
-function decodeAddress(binaryData: Uint8Array): [string, number] {
+export function decodeAddress(binaryData: Uint8Array): [string, number] {
+    if (binaryData.length < 33) {
+        throw new Error("Decoding address: has to have 33 bytes length")
+    }
     const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
     const hash = sha256(addressBytes);
     const checksum = hash.slice(-4); // Take last 4 bytes
