@@ -63,7 +63,7 @@ const minimalABI = {
 
 test('Single action tx sign and marshal', async () => {
   const chainId = idStringToBigInt("2c7iUW3kCDwRA9ZFd5bjZZc8iDy68uAsFSBahjqSZGttiTDSNH");
-  const addrString = "0102030405060708090a0b0c0d0e0f101112131400000000000000000000000000";
+  const addrString = "0x0102030405060708090a0b0c0d0e0f10111213140000000000000000000000000020db0e6c";
 
   const marshaler = new Marshaler(minimalABI)
 

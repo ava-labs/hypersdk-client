@@ -421,7 +421,9 @@ function decodeString(binaryData: Uint8Array): [string, number] {
 
 function decodeAddress(binaryData: Uint8Array): [string, number] {
     const addressBytes = binaryData.subarray(0, 33); // Fixed length for Address (33 bytes)
-    return [bytesToHex(addressBytes), 33];
+    const hash = sha256(addressBytes);
+    const checksum = hash.slice(-4); // Take last 4 bytes
+    return ["0x" + bytesToHex(addressBytes) + bytesToHex(checksum), 33];
 }
 
 function decodeBytes(binaryData: Uint8Array): [string, number] {
@@ -432,11 +434,30 @@ function decodeBytes(binaryData: Uint8Array): [string, number] {
 }
 
 function encodeAddress(value: string): Uint8Array {
-    if (!/^[0-9a-fA-F]{66}$/.test(value)) {
-        throw new Error(`Address must be a 66-character hex string without '0x' prefix: ${value}`);
+    if (!/^0x[0-9a-fA-F]{74}$/.test(value)) {
+        throw new Error(`Address must be a 74-character hex string with '0x' prefix: ${value}`);
     }
 
-    return hexToBytes(value);
+    // Remove 0x prefix
+    const hexWithoutPrefix = value.slice(2);
+    const allBytes = hexToBytes(hexWithoutPrefix);
+
+    // Split into address and checksum
+    const addressBytes = allBytes.slice(0, 33);
+    const providedChecksum = allBytes.slice(33, 37);
+
+    // Calculate expected checksum
+    const hash = sha256(addressBytes);
+    const expectedChecksum = hash.slice(-4); // Take last 4 bytes
+
+    // Verify checksum
+    for (let i = 0; i < 4; i++) {
+        if (providedChecksum[i] !== expectedChecksum[i]) {
+            throw new Error('Invalid address checksum');
+        }
+    }
+
+    return addressBytes;
 }
 
 export function addressBytesFromPubKey(pubKey: Uint8Array): Uint8Array {
