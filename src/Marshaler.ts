@@ -1,4 +1,3 @@
-
 import { sha256 } from '@noble/hashes/sha256';
 import { parse } from 'lossless-json'
 import { base64 } from '@scure/base';
@@ -468,7 +467,10 @@ export function addressBytesFromPubKey(pubKey: Uint8Array): Uint8Array {
 }
 
 export function addressHexFromPubKey(pubKey: Uint8Array): string {
-    return "0x" + bytesToHex(addressBytesFromPubKey(pubKey))
+    const addressBytes = addressBytesFromPubKey(pubKey)
+    const hash = sha256(addressBytes)
+    const checksum = hash.slice(-4) // Take last 4 bytes
+    return "0x" + bytesToHex(addressBytes) + bytesToHex(checksum)
 }
 
 export function encodeNumber(type: string, value: number | string): Uint8Array {
