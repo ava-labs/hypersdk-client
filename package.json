@@ -38,5 +38,9 @@
     "publishConfig": {
         "access": "public",
         "registry": "https://registry.npmjs.org/"
+    },
+    "volta": {
+        "node": "20.11.0",
+        "yarn": "1.22.19"
     }
 }

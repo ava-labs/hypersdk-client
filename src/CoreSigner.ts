@@ -2,15 +2,24 @@ import { base58 } from '@scure/base';
 import { SignerIface } from './types';
 import { VMABI } from './Marshaler';
 import { TransactionPayload } from './types';
-import { EventNames, type ChainAgnosticProvider } from '@avalabs/vm-module-types';
+import { hexToBytes } from '@noble/hashes/utils';
+// import { EventNames, type ChainAgnosticProvider } from '@avalabs/vm-module-types';
 
 type RequestParams = {
     method: string;
     params?: Record<string, any>;
 };
 
-let cachedProvider: ChainAgnosticProvider | null = null;
-async function getProvider(): Promise<ChainAgnosticProvider | null> {
+enum EventNames {
+    CORE_WALLET_ANNOUNCE_PROVIDER = 'core-wallet:announceProvider',
+    CORE_WALLET_REQUEST_PROVIDER = 'core-wallet:requestProvider',
+    EIP6963_ANNOUNCE_PROVIDER = 'eip6963:announceProvider',
+    EIP6963_REQUEST_PROVIDER = 'eip6963:requestProvider',
+}
+
+// TODO create the type of the chainagnosticprovider
+let cachedProvider: any | null = null;
+async function getProvider(): Promise<any | null> {
     if (!cachedProvider) {
         window.addEventListener(EventNames.CORE_WALLET_ANNOUNCE_PROVIDER, (event) => {
             cachedProvider = (<CustomEvent>event).detail.provider;
@@ -46,6 +55,13 @@ export class CoreSigner implements SignerIface {
         return this._cachedPublicKey;
     }
 
+    async getBalance() {
+        await this._request({
+            method: 'hvm_getBalance',
+            params: {},
+        });
+    }
+
     async signTx(txPayload: TransactionPayload, abi: VMABI): Promise<Uint8Array> {
         // TODO separated rpc method in hvm module
         const sig58 = (await this._request({
@@ -62,20 +78,7 @@ export class CoreSigner implements SignerIface {
     }
 
     async connect() {
-        // const provider = await getProvider();
 
-        // TODO separated rpc method in hvm module
-        // const pubKey = await this._request({
-        //     method: 'getPublicKey',
-        //     params: {}
-        // }) as string | undefined;
-
-        // if (!pubKey) {
-        //     throw new Error("Failed to get public key");
-        // }
-
-        this._cachedPublicKey = base58.decode('123245');
-        
         const hvmNetwork = {
             chainName: this._name,
             caipId: this._caipId,
@@ -97,17 +100,16 @@ export class CoreSigner implements SignerIface {
         });
         console.log('isNetworkAdded: ', isNetworkAdded);
 
-        // const pubKey = await this._request({
-        //     method: 'hvm_getPublicKey',
-        //     params: {}
-        // })
+        const pubKeys = await this._request({
+            method: 'wallet_getPublicKey',
+            params: {},
+        });
+        const pubKey = pubKeys.evm;
 
-        // this._cachedPublicKey = base58.decode(pubKey);
-        // console.log('pubkey: ', pubKey);
+        this._cachedPublicKey = hexToBytes(pubKey);
     }
 
     private async _request({ method, params }: RequestParams) {
-        console.log('params: ', params);
         const provider = await getProvider();
         if (!provider) {
             throw new Error('There is no Core provider!');
@@ -115,18 +117,8 @@ export class CoreSigner implements SignerIface {
         if (!params) {
             throw new Error('The params are needed!');
         }
-        // const chainId = params.chainId || params.tx.base.chainId;
-        // const chainId = '12345';
-        console.log('provider3: ', provider);
-        console.log('_request method: ', method);
-        console.log('request params: ', params);
-        // console.log('chainId: ', chainId);
-        // console.log('chainId length: ', chainId.length);
-        // console.log('newChainId length: ', newChainId.length);
-        // console.log('chainId cropped: ', newChainId);
         return provider.request({
             data: { method, params: [params], id: '1' },
-            // sessionId: '',
             scope: this._caipId,
         });
     }

@@ -28,9 +28,6 @@ export class HyperSDKClient extends EventTarget {
     private isPollingBlocks: boolean = false;
 
     constructor(apiHost: string, vmName: string, vmRPCPrefix: string) {
-        console.log('apiHost: ', apiHost);
-        console.log('vmName: ', vmName);
-        console.log('vmRPCPrefix: ', vmRPCPrefix);
         super();
         this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
     }
@@ -46,7 +43,6 @@ export class HyperSDKClient extends EventTarget {
 
     public async sendTransaction(actions: ActionData[]): Promise<TxResult> {
         const txPayload = await this.createTransactionPayload(actions);
-        console.log('txPayload: ', txPayload);
         const abi = await this.getAbi();
         const signed = await this.getSigner().signTx(txPayload, abi);
         const { txId } = await this.http.sendRawTx(signed);
@@ -140,7 +136,6 @@ export class HyperSDKClient extends EventTarget {
                 if (error?.message?.includes('block not found')) {
                     setTimeout(fetchNextBlock, pollingRateMs * 2);
                 } else {
-                    console.error(error);
                     setTimeout(fetchNextBlock, pollingRateMs * 2); // Longer delay on error
                 }
             }
@@ -150,10 +145,9 @@ export class HyperSDKClient extends EventTarget {
     }
 
     private async createSigner(params: SignerType): Promise<SignerIface> {
-        console.log('createSigner params: ', params);
         const { chainId } = await this.http.getNetwork();
         const chainIdBigNumber = idStringToBigInt(chainId);
-        console.log('createSigner chainIdBigNumber: ', chainIdBigNumber);
+
         switch (params.type) {
             case 'ephemeral':
                 return new EphemeralSigner();
