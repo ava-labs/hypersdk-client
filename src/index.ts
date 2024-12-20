@@ -7,15 +7,17 @@ import { base58, base64 } from '@scure/base';
 import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult, TransactionStatus, TxResult } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from './types';
+import { CoreSigner } from './CoreSigner';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 1000000n;
 const DECIMALS = 9;
 
 type SignerType =
-    | { type: "ephemeral" }
-    | { type: "private-key", privateKey: Uint8Array }
-    | { type: "metamask-snap", snapId?: string };
+    | { type: 'ephemeral' }
+    | { type: 'private-key'; privateKey: Uint8Array }
+    | { type: 'metamask-snap'; snapId?: string }
+    | { type: 'core'; name: string; rpcUrl: string; vmRpcPrefix: string };
 
 export class HyperSDKClient extends EventTarget {
     private readonly http: HyperSDKHTTPClient;
@@ -25,11 +27,7 @@ export class HyperSDKClient extends EventTarget {
     private blockSubscribers: Set<(block: Block) => void> = new Set();
     private isPollingBlocks: boolean = false;
 
-    constructor(
-        apiHost: string,
-        vmName: string,
-        vmRPCPrefix: string
-    ) {
+    constructor(apiHost: string, vmName: string, vmRPCPrefix: string) {
         super();
         this.http = new HyperSDKHTTPClient(apiHost, vmName, vmRPCPrefix);
     }
@@ -37,7 +35,7 @@ export class HyperSDKClient extends EventTarget {
     // Public methods
 
     public async connectWallet(params: SignerType): Promise<SignerIface> {
-        this.signer = this.createSigner(params);
+        this.signer = await this.createSigner(params);
         await this.signer.connect();
         this.dispatchEvent(new CustomEvent('signerConnected', { detail: this.signer }));
         return this.signer;
@@ -54,16 +52,13 @@ export class HyperSDKClient extends EventTarget {
     //actorHex is optional, if not provided, the signer's public key will be used
     public async executeActions(actions: ActionData[], actorHex?: string): Promise<ActionOutput[]> {
         const marshaler = await this.getMarshaler();
-        const actionBytesArray = actions.map(action => marshaler.encodeTyped(action.actionName, JSON.stringify(action.data)));
+        const actionBytesArray = actions.map((action) => marshaler.encodeTyped(action.actionName, JSON.stringify(action.data)));
 
         const actor = actorHex ?? addressHexFromPubKey(this.getSigner().getPublicKey());
 
-        const output = await this.http.executeActions(
-            actionBytesArray,
-            actor
-        );
+        const output = await this.http.executeActions(actionBytesArray, actor);
 
-        return output.map(output => marshaler.parseTyped(base64.decode(output), "output")[0]);
+        return output.map((output) => marshaler.parseTyped(base64.decode(output), 'output')[0]);
     }
 
     public async getBalance(address: string): Promise<bigint> {
@@ -121,29 +116,26 @@ export class HyperSDKClient extends EventTarget {
             if (!this.isPollingBlocks) return;
 
             try {
-                const block = currentHeight === -1 ?
-                    await this.http.getLatestBlock()
-                    : await this.http.getBlockByHeight(currentHeight + 1);
+                const block = currentHeight === -1 ? await this.http.getLatestBlock() : await this.http.getBlockByHeight(currentHeight + 1);
 
                 currentHeight = block.block.block.height;
 
                 if (includeEmpty || block.block.block.txs.length > 0) {
                     const executedBlock = processAPIBlock(block, marshaler);
-                    this.blockSubscribers.forEach(callback => {
+                    this.blockSubscribers.forEach((callback) => {
                         try {
                             callback(executedBlock);
                         } catch (error) {
-                            console.error("Error in block callback", error);
+                            console.error('Error in block callback', error);
                         }
                     });
                 }
 
                 setTimeout(fetchNextBlock, pollingRateMs);
             } catch (error: any) {
-                if (error?.message?.includes("block not found")) {
+                if (error?.message?.includes('block not found')) {
                     setTimeout(fetchNextBlock, pollingRateMs * 2);
                 } else {
-                    console.error(error);
                     setTimeout(fetchNextBlock, pollingRateMs * 2); // Longer delay on error
                 }
             }
@@ -152,14 +144,22 @@ export class HyperSDKClient extends EventTarget {
         fetchNextBlock();
     }
 
-    private createSigner(params: SignerType): SignerIface {
+    private async createSigner(params: SignerType): Promise<SignerIface> {
+        const { chainId } = await this.http.getNetwork();
+        const chainIdBigNumber = idStringToBigInt(chainId);
+
         switch (params.type) {
-            case "ephemeral":
+            case 'ephemeral':
                 return new EphemeralSigner();
-            case "private-key":
+            case 'private-key':
                 return new PrivateKeySigner(params.privateKey);
-            case "metamask-snap":
+            case 'metamask-snap':
                 return new MetamaskSnapSigner(params.snapId ?? DEFAULT_SNAP_ID);
+            case 'core':
+                return new CoreSigner({
+                    params,
+                    chainId: chainIdBigNumber,
+                });
             default:
                 throw new Error(`Invalid signer type: ${(params as { type: string }).type}`);
         }
@@ -167,11 +167,10 @@ export class HyperSDKClient extends EventTarget {
 
     private getSigner(): SignerIface {
         if (!this.signer) {
-            throw new Error("Signer not connected");
+            throw new Error('Signer not connected');
         }
         return this.signer;
     }
-
 
     private async getMarshaler(): Promise<Marshaler> {
         if (!this.marshaler) {
@@ -191,7 +190,7 @@ export class HyperSDKClient extends EventTarget {
                 chainId: String(chainIdBigNumber),
                 maxFee: String(DEFAULT_MAX_FEE),
             },
-            actions: actions
+            actions: actions,
         };
     }
 
@@ -200,23 +199,21 @@ export class HyperSDKClient extends EventTarget {
         let lastError: Error | null = null;
         for (let i = 0; i < 10; i++) {
             if (Date.now() - startTime > timeout) {
-                throw new Error("Transaction wait timed out");
+                throw new Error('Transaction wait timed out');
             }
             try {
                 return await this.getTransactionStatus(txId);
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
-                if (!(error instanceof Error) || error.message !== "tx not found") {
+                if (!(error instanceof Error) || error.message !== 'tx not found') {
                     throw error;
                 }
             }
-            await new Promise(resolve => setTimeout(resolve, 100 * i));
+            await new Promise((resolve) => setTimeout(resolve, 100 * i));
         }
-        throw lastError || new Error("Failed to get transaction status");
+        throw lastError || new Error('Failed to get transaction status');
     }
 }
-
-
 
 const cb58 = {
     encode(data: Uint8Array): string {
