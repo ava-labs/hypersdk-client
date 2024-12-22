@@ -21,6 +21,10 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.15
+
+- `SendTransaction` now returns both the `txID` and full txn `result`.
+
 ### 0.4.14
 - Added support for the new 4-byte hash suffix for addresses
 
