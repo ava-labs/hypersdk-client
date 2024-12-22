@@ -43,12 +43,13 @@ export class HyperSDKClient extends EventTarget {
         return this.signer;
     }
 
-    public async sendTransaction(actions: ActionData[]): Promise<TxResult> {
+    public async sendTransaction(actions: ActionData[]): Promise<{ txId: string, result: TxResult }> {
         const txPayload = await this.createTransactionPayload(actions);
         const abi = await this.getAbi();
         const signed = await this.getSigner().signTx(txPayload, abi);
         const { txId } = await this.http.sendRawTx(signed);
-        return this.waitForTransaction(txId);
+        const result = await this.waitForTransaction(txId);
+        return { txId, result };
     }
 
     //actorHex is optional, if not provided, the signer's public key will be used
