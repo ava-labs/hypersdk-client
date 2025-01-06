@@ -8,6 +8,8 @@ import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from './types';
 import { CoreSigner } from './CoreSigner';
+export * from './Marshaler';
+export * from './types';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 1000000n;

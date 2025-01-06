@@ -25,8 +25,6 @@ async function getProvider(): Promise<any | null> {
             cachedProvider = (<CustomEvent>event).detail.provider;
         });
         window.dispatchEvent(new Event(EventNames.CORE_WALLET_REQUEST_PROVIDER));
-
-        // cachedProvider?.subscribeToMessage(this.#handleBackgroundMessage);
     }
     return cachedProvider;
 }
