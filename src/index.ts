@@ -179,10 +179,11 @@ export class HyperSDKClient extends EventTarget {
 
     private getSigner(): SignerIface {
         if (!this.signer) {
-            throw new Error('Signer not connected');
+            throw new Error("Signer not connected");
         }
         return this.signer;
     }
+
 
     private async getMarshaler(): Promise<Marshaler> {
         if (!this.marshaler) {

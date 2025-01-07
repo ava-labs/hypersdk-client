@@ -74,6 +74,7 @@ export class MetamaskSnapSigner implements SignerIface {
             method: 'getPublicKey',
             params: {}
         }) as string | undefined;
+
         if (!pubKey) {
             throw new Error("Failed to get public key");
         }
