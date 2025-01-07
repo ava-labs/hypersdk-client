@@ -4,7 +4,7 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { addressHexFromPubKey, Marshaler, VMABI } from './Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base58, base64 } from '@scure/base';
-import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult, TransactionStatus, TxResult } from './apiTransformers';
+import { Block, processAPIBlock, processAPITxResult, TxResult } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from './types';
 import { CoreSigner } from './CoreSigner';

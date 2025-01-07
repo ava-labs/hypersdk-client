@@ -3,7 +3,6 @@ import { SignerIface } from './types';
 import { VMABI } from './Marshaler';
 import { TransactionPayload } from './types';
 import { hexToBytes } from '@noble/hashes/utils';
-// import { EventNames, type ChainAgnosticProvider } from '@avalabs/vm-module-types';
 
 type RequestParams = {
     method: string;
@@ -12,62 +11,66 @@ type RequestParams = {
 
 enum EventNames {
     CORE_WALLET_ANNOUNCE_PROVIDER = 'core-wallet:announceProvider',
-    CORE_WALLET_REQUEST_PROVIDER = 'core-wallet:requestProvider',
-    EIP6963_ANNOUNCE_PROVIDER = 'eip6963:announceProvider',
-    EIP6963_REQUEST_PROVIDER = 'eip6963:requestProvider',
+    CORE_WALLET_REQUEST_PROVIDER = 'core-wallet:requestProvider'
 }
 
-// TODO create the type of the chainagnosticprovider
-let cachedProvider: any | null = null;
+let coreChainAgnosticProvider: any | null = null;
 async function getProvider(): Promise<any | null> {
-    if (!cachedProvider) {
-        window.addEventListener(EventNames.CORE_WALLET_ANNOUNCE_PROVIDER, (event) => {
-            cachedProvider = (<CustomEvent>event).detail.provider;
-        });
-        window.dispatchEvent(new Event(EventNames.CORE_WALLET_REQUEST_PROVIDER));
+
+    if(coreChainAgnosticProvider) {
+        return Promise.resolve(coreChainAgnosticProvider);
     }
-    return cachedProvider;
+
+    return new Promise((resolve) => {
+        if (!coreChainAgnosticProvider) {
+            window.addEventListener(EventNames.CORE_WALLET_ANNOUNCE_PROVIDER, (event) => {
+                coreChainAgnosticProvider = (<CustomEvent>event).detail.provider;
+                resolve(coreChainAgnosticProvider)
+            });
+            window.dispatchEvent(new Event(EventNames.CORE_WALLET_REQUEST_PROVIDER));
+        }
+    })
+    
 }
 
 export class CoreSigner implements SignerIface {
-    private _cachedPublicKey: Uint8Array | null = null;
-    private _chainIdLength = 32;
-    private _name: string;
-    private _rpcUrl: string;
-    private _chainId: bigint;
-    private _caipId: string;
-    private _vmRpcPrefix: string;
+    #cachedPublicKey: Uint8Array | null = null;
+    #chainIdLength = 32;
+    #name: string;
+    #rpcUrl: string;
+    #chainId: bigint;
+    #caipId: string;
+    #vmRpcPrefix: string;
 
     constructor({ params, chainId }: { params: { name: string; rpcUrl: string; vmRpcPrefix: string }; chainId: bigint }) {
-        this._name = params.name;
-        this._rpcUrl = params.rpcUrl;
-        this._chainId = chainId;
-        this._vmRpcPrefix = params.vmRpcPrefix;
-        this._caipId = `hvm:${this._chainId.toString().slice(0, this._chainIdLength)}`;
+        this.#name = params.name;
+        this.#rpcUrl = params.rpcUrl;
+        this.#chainId = chainId;
+        this.#vmRpcPrefix = params.vmRpcPrefix;
+        this.#caipId = `hvm:${this.#chainId.toString().slice(0, this.#chainIdLength)}`;
     }
 
     getPublicKey(): Uint8Array {
-        if (!this._cachedPublicKey) {
-            throw new Error('Public key not cached. Please call connect() first.');
+        if (!this.#cachedPublicKey) {
+            throw new Error('Public key missing. Please call connect() first.');
         }
-        return this._cachedPublicKey;
+        return this.#cachedPublicKey;
     }
 
     async getBalance() {
-        await this._request({
+        await this.#request({
             method: 'hvm_getBalance',
             params: {},
         });
     }
 
     async signTx(txPayload: TransactionPayload, abi: VMABI): Promise<Uint8Array> {
-        // TODO separated rpc method in hvm module
-        const sig58 = (await this._request({
+        const sig58 = (await this.#request({
             method: 'hvm_signTransaction',
-            params: {
+            params: [{
                 abi: abi,
                 tx: txPayload,
-            },
+            }],
         })) as string | undefined;
         if (!sig58) {
             throw new Error('Failed to sign transaction');
@@ -76,11 +79,10 @@ export class CoreSigner implements SignerIface {
     }
 
     async connect() {
-
         const hvmNetwork = {
-            chainName: this._name,
-            caipId: this._caipId,
-            rpcUrl: this._rpcUrl,
+            chainName: this.#name,
+            caipId: this.#caipId,
+            rpcUrl: this.#rpcUrl,
             networkToken: {
                 symbol: 'COIN',
                 decimals: 9,
@@ -90,34 +92,38 @@ export class CoreSigner implements SignerIface {
             },
             logoUri: '',
             vmName: 'HVM',
-            vmRpcPrefix: this._vmRpcPrefix,
+            vmRpcPrefix: this.#vmRpcPrefix,
         };
-        const isNetworkAdded = await this._request({
+        
+        await this.#request({
             method: 'wallet_addNetwork',
             params: hvmNetwork,
         });
-        console.log('isNetworkAdded: ', isNetworkAdded);
 
-        const pubKeys = await this._request({
+        const pubKeys = await this.#request({
             method: 'wallet_getPublicKey',
             params: {},
         });
-        const pubKey = pubKeys.evm;
+        const pubKey = pubKeys.ed25519;
 
-        this._cachedPublicKey = hexToBytes(pubKey);
+        if(!pubKey) {
+            throw new Error('ed25519 is not supported on the active account')
+        }
+
+        this.#cachedPublicKey = hexToBytes(pubKey);
     }
 
-    private async _request({ method, params }: RequestParams) {
+    async #request({ method, params }: RequestParams) {
         const provider = await getProvider();
         if (!provider) {
-            throw new Error('There is no Core provider!');
+            throw new Error('Core provider not found!');
         }
         if (!params) {
-            throw new Error('The params are needed!');
+            throw new Error('Request params are missing');
         }
         return provider.request({
             data: { method, params: [params], id: '1' },
-            scope: this._caipId,
+            scope: this.#caipId,
         });
     }
 }
