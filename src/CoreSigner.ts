@@ -67,10 +67,10 @@ export class CoreSigner implements SignerIface {
     async signTx(txPayload: TransactionPayload, abi: VMABI): Promise<Uint8Array> {
         const sig58 = (await this.#request({
             method: 'hvm_signTransaction',
-            params: [{
+            params: {
                 abi: abi,
                 tx: txPayload,
-            }],
+            },
         })) as string | undefined;
         if (!sig58) {
             throw new Error('Failed to sign transaction');
