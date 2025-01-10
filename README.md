@@ -21,6 +21,10 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.16
+
+- Added experimental support for Core wallet
+
 ### 0.4.15
 
 - `SendTransaction` now returns both the `txID` and full txn `result`.

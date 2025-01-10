@@ -1,6 +1,6 @@
 {
   "name": "hypersdk-client",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "Sample client for HyperSDK",
   "repository": {
     "type": "git",
