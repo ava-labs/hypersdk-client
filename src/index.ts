@@ -4,9 +4,12 @@ import { DEFAULT_SNAP_ID, MetamaskSnapSigner } from './MetamaskSnapSigner';
 import { addressHexFromPubKey, Marshaler, VMABI } from './Marshaler';
 import { HyperSDKHTTPClient } from './HyperSDKHTTPClient';
 import { base58, base64 } from '@scure/base';
-import { Block, processAPIBlock, processAPITransactionStatus, processAPITxResult, TransactionStatus, TxResult } from './apiTransformers';
+import { Block, processAPIBlock, processAPITxResult, TxResult } from './apiTransformers';
 import { sha256 } from '@noble/hashes/sha256';
 import { ActionData, TransactionPayload } from './types';
+import { CoreSigner } from './CoreSigner';
+export * from './Marshaler';
+export * from './types';
 
 // TODO: Implement fee prediction
 const DEFAULT_MAX_FEE = 1000000n;
@@ -15,7 +18,8 @@ const DECIMALS = 9;
 type SignerType =
     | { type: "ephemeral" }
     | { type: "private-key", privateKey: Uint8Array }
-    | { type: "metamask-snap", snapId?: string };
+    | { type: "metamask-snap", snapId?: string }
+    | { type: "core"; name: string; rpcUrl: string; vmRpcPrefix: string };
 
 export class HyperSDKClient extends EventTarget {
     private readonly http: HyperSDKHTTPClient;
@@ -37,7 +41,7 @@ export class HyperSDKClient extends EventTarget {
     // Public methods
 
     public async connectWallet(params: SignerType): Promise<SignerIface> {
-        this.signer = this.createSigner(params);
+        this.signer = await this.createSigner(params);
         await this.signer.connect();
         this.dispatchEvent(new CustomEvent('signerConnected', { detail: this.signer }));
         return this.signer;
@@ -58,7 +62,6 @@ export class HyperSDKClient extends EventTarget {
         const actionBytesArray = actions.map(action => marshaler.encodeTyped(action.actionName, JSON.stringify(action.data)));
 
         const actor = actorHex ?? addressHexFromPubKey(this.getSigner().getPublicKey());
-
         const output = await this.http.executeActions(
             actionBytesArray,
             actor
@@ -153,7 +156,10 @@ export class HyperSDKClient extends EventTarget {
         fetchNextBlock();
     }
 
-    private createSigner(params: SignerType): SignerIface {
+    private async createSigner(params: SignerType): Promise<SignerIface> {
+        const { chainId } = await this.http.getNetwork();
+        const chainIdBigNumber = idStringToBigInt(chainId);
+
         switch (params.type) {
             case "ephemeral":
                 return new EphemeralSigner();
@@ -161,6 +167,11 @@ export class HyperSDKClient extends EventTarget {
                 return new PrivateKeySigner(params.privateKey);
             case "metamask-snap":
                 return new MetamaskSnapSigner(params.snapId ?? DEFAULT_SNAP_ID);
+            case "core":
+                return new CoreSigner({
+                    params,
+                    chainId: chainIdBigNumber,
+                });
             default:
                 throw new Error(`Invalid signer type: ${(params as { type: string }).type}`);
         }
