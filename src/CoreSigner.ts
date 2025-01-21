@@ -100,6 +100,11 @@ export class CoreSigner implements SignerIface {
             params: hvmNetwork,
         });
 
+        await this.#request({
+            method: 'wallet_requestAccountPermission',
+            params: {}
+        });
+
         const pubKeys = await this.#request({
             method: 'wallet_getPublicKey',
             params: {},
