@@ -21,6 +21,10 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 
 ## Changelog
 
+### 0.4.17
+
+- Ask permission from Core Extension
+
 ### 0.4.16
 
 - Added experimental support for Core wallet
@@ -46,7 +50,7 @@ To use the HyperSDK Client, make sure you have the latest version installed. You
 - Support `bool` fields in ABI. [HyperSDK PR](https://github.com/ava-labs/hypersdk/pull/1648)
 
 ### 0.4.9
-- Updated the indexer API to the latest iteration.
+- Updated the indexer API to the latest iteration.`
 - Simplified indexer transformation in favor of easier support.
 
 ### 0.4.8
